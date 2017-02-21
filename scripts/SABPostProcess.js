@@ -197,7 +197,7 @@ globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': tru
         }
         // Otherwise, remove progress indicator updates from stdout
         // to avoid cluttering SABnzbd's logs.
-        return getStream(spawned.stdout).then(stdout => {
+        return getStream(spawned.stdout).then((stdout) => {
           stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
           console.log(stdout)
         })
