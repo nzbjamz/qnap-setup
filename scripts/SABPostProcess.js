@@ -37,6 +37,7 @@ const inpath = path.resolve(argv[0])
 const foldername = path.basename(inpath)
 const imdbid = (/\btt\d{7,}/.exec(foldername) || [''])[0]
 
+argv[0] = inpath
 if (argv.length < 3) {
   argv.length = 7
   // The name of the job name without path or file extension.
