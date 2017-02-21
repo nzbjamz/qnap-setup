@@ -55,5 +55,5 @@ git clone --quiet --depth=1 --branch=master git://github.com/nzbjamz/qnap-setup
 
 1. From QTS restart QSabNZBdPlus, QCouchPotato, and QSonarr packages.
 
-1. Configure QSabNZBdPlus, QCouchPotato, and QSonarr.<br>
-   Make sure QSabNZBdPlus’ script folder points to `/share/CACHEDEV1_DATA/scripts/`
+1. Configure [SABnzbd](configs/SABnzbd.md), [CouchPotato](configs/CouchPotato.md),
+  [Sonarr](configs/Sonarr.md), and [Plex Server](configs/PlexServer.md).
