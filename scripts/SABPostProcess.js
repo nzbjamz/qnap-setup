@@ -12,7 +12,7 @@ const pify = require('pify')
 const unary = (func) => (a) => func(a)
 const binary = (func) => (a, b) => func(a, b)
 
-const exists = unary(pify(fs.exists))
+const exists = unary(pify((a, b) => fs.exists(a, (c) => b(null, c))))
 const move = binary(pify(fs.move))
 const read = binary(pify(fs.readFile))
 const remove = unary(pify(fs.remove))
