@@ -39,6 +39,8 @@
 ## Downloaders
 
   * Add your download client
+  * ✓ Ssl
+  * Category: `movies`
 
 ## Renamer
 

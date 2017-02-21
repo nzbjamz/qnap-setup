@@ -51,6 +51,8 @@
 ### Download Clients
 
   * Add your download client
+  * Category: `tv`
+  * Use SSL: `Yes`
 
 ### Completed Download Handling
 
