@@ -269,12 +269,14 @@ globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': tru
   })
   .then(() => {
     // Since the `SABNZBD` section is configured with `convert = False`
-    // invoking SABPostProcess.py will simply notify CouchPotato and Sonarr.
+    // invoking SABPostProcess.py will simply start a renamer scan.
     const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
-    console.log(`Notifying ${ manager } renamer.`)
+    console.log(`Starting ${ manager } renamer.`)
+
     const spawned = execa(SAB_SCRIPT_PATH, argv)
     spawned.stdout.pipe(process.stdout)
     return spawned
+      .catch(() => console.log('Failed to start renamer.'))
   })
   .then(() => {
     console.log('Finding renamed video folder.')
