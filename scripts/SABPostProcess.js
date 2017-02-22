@@ -191,17 +191,16 @@ globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': tru
       }))
       .then(() => {
         const spawned = execa(MANUAL_SCRIPT_PATH, ['--auto', '--convertmp4', '--notag', '--config', confpath1, '--input', inpath])
-        // Show progress indicator when manually invoked.
         if (group === 'Manual Run') {
           spawned.stdout.pipe(process.stdout)
-          return spawned
+        } else {
+          getStream(spawned.stdout).then((stdout) => {
+            // Remove progress bar updates to avoid cluttering SABnzbd's logs.
+            stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
+            console.log(stdout)
+          })
         }
-        // Otherwise, remove progress indicator updates from stdout
-        // to avoid cluttering SABnzbd's logs.
-        return getStream(spawned.stdout).then((stdout) => {
-          stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
-          console.log(stdout)
-        })
+        return spawned
       })
   })
   .then(() => globby('**/*.mp4', { 'cwd': inpath, 'realpath': true }))
