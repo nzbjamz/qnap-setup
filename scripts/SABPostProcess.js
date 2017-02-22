@@ -8,11 +8,11 @@ const globby = require('globby')
 const ini = require('ini')
 const path = require('path')
 const pify = require('pify')
+const tempWrite = require('temp-write')
 
 const unary = (func) => (a) => func(a)
 const binary = (func) => (a, b) => func(a, b)
 
-const exists = unary(pify((a, b) => fs.exists(a, (c) => b(null, c))))
 const move = binary(pify(fs.move))
 const read = binary(pify(fs.readFile))
 const remove = unary(pify(fs.remove))
@@ -28,9 +28,8 @@ const WATCH_PATH = '/share/CACHEDEV1_DATA/Download/complete'
 const MANUAL_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/manual.py'
 const SAB_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/SABPostProcess.py'
 
-const confpath1 = path.join(__dirname, 'autoProcess.1.ini')
-const confpath2 = path.join(__dirname, 'autoProcess.ini')
-const config2 = read(confpath2, 'utf8').then(ini.parse)
+const confpath = path.join(__dirname, 'autoProcess.ini')
+const config = read(confpath, 'utf8').then(ini.parse)
 
 const argv = process.argv.slice(2)
 const inpath = path.resolve(argv[0])
@@ -182,26 +181,25 @@ globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': tru
   .then(() => {
     // The first pass converts from avi/mkv/other to mp4.
     console.log('Running first pass of mp4_automator/manual.py.')
-    return exists(confpath1)
-      .then((found) => found || config2.then((object2) => {
-        // Create autoProcess.1.ini if it doesn't exist.
-        const object1 = cloneDeep(object2)
-        Object.assign(object1.MP4, { 'ios-audio': 'True', 'relocate_moov': 'False' })
-        return write(confpath1, ini.stringify(object1))
-      }))
-      .then(() => {
-        const spawned = execa(MANUAL_SCRIPT_PATH, ['--auto', '--convertmp4', '--notag', '--config', confpath1, '--input', inpath])
-        if (group === 'Manual Run') {
-          spawned.stdout.pipe(process.stdout)
-        } else {
-          getStream(spawned.stdout).then((stdout) => {
-            // Remove progress bar updates to avoid cluttering SABnzbd's logs.
-            stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
-            console.log(stdout)
-          })
-        }
-        return spawned
-      })
+    return config.then((object) => {
+      // Create temporary ini with ios-audio enabled and relocate_moov disabled.
+      object = cloneDeep(object)
+      Object.assign(object.MP4, { 'ios-audio': 'True', 'relocate_moov': 'False' })
+      return tempWrite(ini.stringify(object))
+    })
+    .then((temppath) => {
+      const spawned = execa(MANUAL_SCRIPT_PATH, ['--auto', '--convertmp4', '--notag', '--config', temppath, '--input', inpath])
+      if (group === 'Manual Run') {
+        spawned.stdout.pipe(process.stdout)
+      } else {
+        getStream(spawned.stdout).then((stdout) => {
+          // Remove progress bar updates to avoid cluttering SABnzbd's logs.
+          stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
+          console.log(stdout)
+        })
+      }
+      return spawned
+    })
   })
   .then(() => globby('**/*.mp4', { 'cwd': inpath, 'realpath': true }))
   .then((filepaths) => series(filepaths.map((filepath) =>
@@ -251,7 +249,7 @@ globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': tru
   .then(() => {
     // The second pass adds metadata and relocates the moov atom.
     console.log('Running second pass of mp4_automator/manual.py.')
-    const args = ['--auto', '--convertmp4', '--config', confpath2, '--input', inpath]
+    const args = ['--auto', '--convertmp4', '--config', confpath, '--input', inpath]
     if (imdbid) {
       args.push('--imdbid', imdbid)
     }
