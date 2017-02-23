@@ -127,10 +127,9 @@
   )
 
   const getAudioStreams = (streams) => (
-    streams.filter(({ codec_type }) => codec_type === 'audio').map((aud, index) => {
-      const rank = getRank(aud)
-      return Object.assign(cloneDeep(aud), { index, rank })
-    })
+    streams
+      .filter(({ codec_type }) => codec_type === 'audio')
+      .map((aud, index) => Object.assign(cloneDeep(aud), { index, 'rank': getRank(aud) }))
   )
 
   const getDefaultStream = (streams) => (
@@ -142,16 +141,15 @@
   )
 
   const getSubStreams = (streams) => (
-    streams.filter(({ codec_type }) => codec_type === 'subtitle').map((sub, index) => {
-      const lang = getLang(sub)
-      return Object.assign(cloneDeep(sub), { index, lang })
-    })
+    streams
+      .filter(({ codec_type }) => codec_type === 'subtitle')
+      .map((sub, index) => Object.assign(cloneDeep(sub), { index, 'lang': getLang(sub) }))
   )
 
   const getVideoStreams = (streams) => (
-    streams.filter(({ codec_type }) => codec_type === 'video').map((vid, index) => {
-      return Object.assign(cloneDeep(vid), { index })
-    })
+    streams
+      .filter(({ codec_type }) => codec_type === 'video')
+      .map((vid, index) => Object.assign(cloneDeep(vid), { index }))
   )
 
   const getChannelLayout = ({ channel_layout }) => (
