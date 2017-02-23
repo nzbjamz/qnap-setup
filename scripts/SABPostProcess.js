@@ -13,12 +13,14 @@
   const pify = require('pify')
   const tempWrite = require('temp-write')
 
-  const unary = (func) => (a) => func(a)
+  const isFile = async (p) => (await stat(p)).isFile()
   const binary = (func) => (a, b) => func(a, b)
+  const unary = (func) => (a) => func(a)
 
   const move = binary(pify(fs.move))
   const read = binary(pify(fs.readFile))
   const remove = unary(pify(fs.remove))
+  const stat = unary(pify(fs.stat))
 
   const FFMPEG_PATH = '/opt/bin/ffmpeg'
   const FFPROBE_PATH = '/opt/bin/ffprobe'
@@ -35,7 +37,7 @@
 
   const argv = process.argv.slice(2)
   const inpath = path.resolve(argv[0])
-  const foldername = path.basename(inpath)
+  const foldername = await isFile(inpath) ? path.basename(path.dirname(inpath)) : path.basename(inpath)
   const imdbid = (/\btt\d{7,}/.exec(foldername) || [''])[0]
 
   argv[0] = inpath
@@ -214,10 +216,9 @@
    * @returns {boolean} Returns `true` if the step was executed, else `false`.
    */
   const stepOne = async (inpath) => {
-    const vidpaths = await globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', {
-      'cwd': inpath,
-      'realpath': true
-    })
+    const vidpaths = await isFile(inpath)
+      ? [inpath]
+      : await globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': true })
 
     let result = false
     for (const vidpath of vidpaths) {
@@ -277,10 +278,9 @@
    * @returns {boolean} Returns `true` if the step was executed, else `false`.
    */
   const stepThree = async (inpath) => {
-    const vidpaths = await globby('**/*.mp4', {
-      'cwd': inpath,
-      'realpath': true
-    })
+    const vidpaths = await isFile(inpath)
+      ? [inpath]
+      : await globby('**/*.mp4', { 'cwd': inpath, 'realpath': true })
 
     for (const vidpath of vidpaths) {
       const dirname = path.dirname(vidpath)
