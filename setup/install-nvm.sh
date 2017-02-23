@@ -9,7 +9,8 @@ curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | b
 mv ~/.nvm /share/CACHEDEV1_DATA/
 
 # Update NVM_DIR variable.
-sed 's:NVM_DIR=.*:NVM_DIR=/share/CACHEDEV1_DATA/.nvm:' ~/.profile > .profile.tmp && mv -f .profile.tmp .profile
+sed 's:NVM_DIR=.*:NVM_DIR=/share/CACHEDEV1_DATA/.nvm:' ~/.profile > .profile.tmp && \
+mv -f .profile.tmp .profile
 
 # Add NVM_DIR variable to /opt/etc/profile so it will persist after a reboot.
 cat << EOF > /opt/etc/profile
