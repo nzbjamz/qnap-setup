@@ -2,9 +2,14 @@
 
 echo 'Adding environment variables.'
 
-echo 'export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt' >> /opt/etc/profile
-echo 'export PYTHONPATH=/opt/lib/python2.7/site-packages' >> /opt/etc/profile
-echo $'\nrm -rf /share/HD*_DATA\n' >> /opt/etc/profile
+cat << EOF > /opt/etc/profile
+export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+export PYTHONIOENCODING=UTF-8
+export PYTHONPATH=/opt/lib/python2.7/site-packages
+
+rm -rf /share/HD*_DATA
+
+EOF
 
 echo 'Installing core opkg packages.'
 
