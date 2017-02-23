@@ -22,6 +22,8 @@
   const remove = unary(pify(fs.remove))
   const stat = unary(pify(fs.stat))
 
+  const TWENTY_MEGABYTES = 1000 * 1000 * 20;
+
   const FFMPEG_PATH = '/opt/bin/ffmpeg'
   const FFPROBE_PATH = '/opt/bin/ffprobe'
 
@@ -102,6 +104,10 @@
 
   /*--------------------------------------------------------------------------*/
 
+  const exec = (file, args) => (
+    execa(file, args, { 'maxBuffer': TWENTY_MEGABYTES })
+  )
+
   const execQuiet = (file, args) => (
     execa(file, args, { 'stdio': 'ignore' })
   )
@@ -112,7 +118,7 @@
 
   const ffprobe = async (filepath) => {
     try {
-      const { stdout } = await execa(FFPROBE_PATH, ['-loglevel', 'quiet', '-print_format', 'json', '-show_streams', filepath])
+      const { stdout } = await exec(FFPROBE_PATH, ['-loglevel', 'quiet', '-print_format', 'json', '-show_streams', filepath])
       return JSON.parse(stdout).streams
     } catch (e) {}
     return []
@@ -256,7 +262,7 @@
     Object.assign(tempfig.MP4, { 'ios-audio': 'True', 'relocate_moov': 'False' })
 
     const temppath = await tempWrite(ini.stringify(tempfig))
-    const spawned = execa(MANUAL_SCRIPT_PATH, ['--auto', '--convertmp4', '--notag', '--config', temppath, '--input', inpath])
+    const spawned = exec(MANUAL_SCRIPT_PATH, ['--auto', '--convertmp4', '--notag', '--config', temppath, '--input', inpath])
 
     if (isManual) {
       spawned.stdout.pipe(process.stdout)
@@ -335,7 +341,7 @@
     if (imdbid) {
       args.push('--imdbid', imdbid)
     }
-    const spawned = execa(MANUAL_SCRIPT_PATH, args)
+    const spawned = exec(MANUAL_SCRIPT_PATH, args)
     if (isManual) {
       spawned.stdout.pipe(process.stdout)
     } else {
@@ -363,7 +369,7 @@
       // Since `SABNZBD` is configured with `convert = False`
       // invoking SABPostProcess.py will simply start a renamer scan.
       console.log(`Starting ${ manager } renamer scan.`)
-      const spawned = execa(SAB_SCRIPT_PATH, argv)
+      const spawned = exec(SAB_SCRIPT_PATH, argv)
       spawned.stdout.pipe(process.stdout)
       await spawned
     } catch (e) {
