@@ -372,7 +372,6 @@
       console.log('Operation failed.')
       return true
     }
-
     console.log('Finding renamed video folder.')
     const dirpaths = await globby('**/', {
       'cwd': libpath,
