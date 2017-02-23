@@ -19,7 +19,6 @@
   const move = binary(pify(fs.move))
   const read = binary(pify(fs.readFile))
   const remove = unary(pify(fs.remove))
-  const write = binary(pify(fs.writeFile))
 
   const FFMPEG_PATH = '/opt/bin/ffmpeg'
   const FFPROBE_PATH = '/opt/bin/ffprobe'
