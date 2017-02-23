@@ -24,7 +24,7 @@ chmod +x ./scripts/manual.py
 
 echo 'Installing custom scripts.'
 
-cd "$basedir"/../scripts
-cp * /share/CACHEDEV1_DATA/scripts
-cd /share/CACHEDEV1_DATA/scripts
+cd "$basedir"/../scripts/
+cp * /share/CACHEDEV1_DATA/scripts/
+cd /share/CACHEDEV1_DATA/scripts/
 npm i > /dev/null 2>&1

@@ -7,7 +7,7 @@ echo 'Cleaning up QNAP packages.'
 rm -rf /share/CACHEDEV1_DATA/.qpkg/Entware-ng/include/python2.7
 rm -rf /share/CACHEDEV1_DATA/.qpkg/Entware-ng/lib/python2.7
 
-cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/bin
+cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/bin/
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python python
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python2 python2
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python2.7 python2.7
@@ -15,10 +15,10 @@ ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python-config python-config
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python2-config python2-config
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python2.7-config python2.7-config
 
-cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/include
+cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/include/
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/include/python2.7 python2.7
 
-cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/lib
+cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/lib/
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/lib/python2.7 python2.7
 
 # Remove unused node and npm installs.
@@ -38,7 +38,7 @@ git clone --quiet --depth=1 --branch=master git://github.com/CouchPotato/CouchPo
 
 echo 'Updating SABnzbd.'
 
-cd /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus
+cd /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/
 rm -rf SABnzbd
 git clone --quiet --depth=1 --branch=1.2.1RC1 git://github.com/sabnzbd/sabnzbd.git SABnzbd > /dev/null 2>&1
 
