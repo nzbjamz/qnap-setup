@@ -201,7 +201,9 @@
         return true
       }
     } catch (e) {
-      await Promise.all([...seen.values()].map(remove))
+      for (const subpath of seen.values()) {
+        await remove(subpath)
+      }
     }
     return false
   }
@@ -220,7 +222,8 @@
       'realpath': true
     })
 
-    return vidpaths.reduce(async (result, vidpath) => {
+    let result = false
+    for (const vidpath of vidpaths) {
       const dirname = path.dirname(vidpath)
       const basename = path.basename(vidpath)
       const ext = path.extname(basename).toLowerCase()
@@ -234,13 +237,14 @@
       const aac = firstOfCodec(stereos, 'aac')
 
       if (ext === '.mp4' && aac && !subs.length && auds.length < 3) {
-        return result
+        continue
       }
       if (await extractSubs(vidpath, 'en', streams)) {
         console.log(`Extracted subtitles for ${ basename }.`)
       }
-      return true
-    }, false)
+      result = true
+    }
+    return result
   }
 
   /**
@@ -281,7 +285,7 @@
       'realpath': true
     })
 
-    vidpaths.forEach(async (vidpath) => {
+    for (const vidpath of vidpaths) {
       const dirname = path.dirname(vidpath)
       const basename = path.basename(vidpath)
       const bakpath = path.join(dirname, `${ basename }.original`)
@@ -318,7 +322,7 @@
         console.log('Operation failed.')
         await move(bakpath, vidpath)
       }
-    })
+    }
     return true
   }
 
@@ -396,7 +400,7 @@
     })
 
     console.log('Scanning for misnamed subtitles.')
-    subpaths.forEach(async (subpath) => {
+    for (const subpath of subpaths) {
       const dirname = path.dirname(subpath)
       const basename = path.basename(subpath)
       const parts = basename.split('.')
@@ -407,15 +411,13 @@
         console.log(`Renaming ${ basename } to ${ rename }.`)
         await move(subpath, path.join(dirname, rename))
       }
-    })
-
+    }
     console.log('Scanning for leftover files.')
-    leftpaths.forEach(async (leftpath) => {
+    for (const leftpath of leftpaths) {
       const basename = path.basename(leftpath)
       console.log(`Removing ${ basename }.`)
       await remove(leftpath)
-    })
-
+    }
     return true
   }
 
