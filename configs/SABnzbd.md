@@ -22,6 +22,16 @@
   * Completed Download Folder: `/share/CACHEDEV1_DATA/Download/transcoding`
   * Scripts Folder: `/share/CACHEDEV1_DATA/scripts`
 
+## Servers
+
+  Use the SSL address and port specified by your provider.
+
+  * Host: `<SSL_SERVER_HOST>`
+  * Port: `443`
+  * ✓ SSL
+  * Advanced
+    * Certificate verification: `Strict`
+
 ## Categories
 
 |Category |Priority |Processing |Script            |Folder/Path |Indexer Categories / Groups |

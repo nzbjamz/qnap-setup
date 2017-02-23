@@ -18,6 +18,10 @@
   * Usenet Retention: `<INDEXER_RETENTION>`
   * Add your indexer
 
+  |Host                    |Api Key     |Extra Score |Custom Tag |
+  |:--                     |:--         |:--         |:--        |
+  |`<INDEXER_API_ADDRESS>` |`<API_KEY>` |0           |`<EMPTY>`  |
+
 ## Categories
 
 ### Global filters
@@ -49,7 +53,7 @@
   * ✓ Remove lower/equal quality copies of a release after downloading.
   * To: `/share/CACHEDEV1_DATA/Multimedia/Movies/`
   * Folder naming: `<namethe> (<year>)`
-  * File naming: `<thename><cd>.<ext>`
+  * File naming: `<thename> (<year>) <cd>.<ext>`
   * ✓ Clean Name
   * ✓ Cleanup
   * From: `/share/CACHEDEV1_DATA/Download/complete/movies/`
