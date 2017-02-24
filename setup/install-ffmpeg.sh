@@ -5,7 +5,7 @@ echo 'Installing ffmpeg builds.'
 # Install the latest static build of ffmpeg in /opt,
 # which should be a symlink of /share/CACHEDEV1_DATA/.qpkg/Entware-ng.
 cd /opt/bin/
-curl -o ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-64bit-static.tar.xz
+curl -o ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-64bit-static.tar.xz
 tar -xJf ffmpeg.tar.xz
 cd ffmpeg-*-64bit-static/
 mv -f ff* qt* ../
