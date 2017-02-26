@@ -3,15 +3,27 @@
 (async function() {
   'use strict'
 
+  const defaultsDeep = require('lodash/defaultsDeep')
   const execa = require('execa')
   const fs = require('fs-extra')
-  const getStream = require('get-stream')
   const globby = require('globby')
   const ini = require('ini')
   const isPathInside = require('path-is-inside')
   const path = require('path')
   const pify = require('pify')
   const tempWrite = require('temp-write')
+
+  const yargs = require('yargs')
+    .string('category')
+    .array('force')
+    .string('imdbid')
+    .string('tmdbid')
+    .string('tvdbid')
+    .alias('c', 'category')
+    .alias('f', 'force')
+    .alias('imdb', 'imdbid')
+    .alias('tmdb', 'tmdbid')
+    .alias('tv', 'tvdbid')
 
   const isFile = async (p) => (await stat(p)).isFile()
   const binary = (func) => (a, b) => func(a, b)
@@ -21,8 +33,6 @@
   const read = binary(pify(fs.readFile))
   const remove = unary(pify(fs.remove))
   const stat = unary(pify(fs.stat))
-
-  const TWENTY_MEGABYTES = 1000 * 1000 * 20;
 
   const FFMPEG_PATH = '/opt/bin/ffmpeg'
   const FFPROBE_PATH = '/opt/bin/ffprobe'
@@ -34,32 +44,55 @@
   const MANUAL_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/manual.py'
   const SAB_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/SABPostProcess.py'
 
+  const GLOB_ALL = '**/*'
+  const GLOB_MP4 = '**/*.{mp4,m4v}'
+  const GLOB_SRT = '**/*.srt'
+  const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
+
   const confpath = path.join(__dirname, 'autoProcess.ini')
   const config = ini.parse(await read(confpath, 'utf8'))
 
-  const argv = process.argv.slice(2)
-  const inpath = path.resolve(argv[0])
+  const sabArgs = yargs.argv._.slice()
+  const inpath = path.resolve(sabArgs[0] || process.cwd())
   const foldername = await isFile(inpath) ? path.basename(path.dirname(inpath)) : path.basename(inpath)
-  const imdbid = (/\btt\d{7,}/.exec(foldername) || [''])[0]
 
-  argv[0] = inpath
-  if (argv.length < 3) {
-    argv.length = 7
-    // The name of the job name without path or file extension.
-    argv[2] = foldername
-    // The indexer's report number. It's not used by SABPostProcess.py.
-    argv[3] = 0
-    // The user-defined category used to signal which manager is notified.
-    argv[4] = argv[1] || inpath.toLowerCase().split(path.sep).includes('tv') ? 'tv' : 'movies'
-    // The group the NZB was posted in, e.g. alt.binaries.x. We use it to detect a "Manual Run".
-    argv[5] = 'Manual Run'
-    // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
-    argv[6] = 0
-    // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
-    argv[1] = `${ foldername }.nzb`
+  let { category=sabArgs[4], force=[], imdbid='', tmdbid='', tvdbid='' } = yargs.argv
+  force = new Set(force.map((value) => value.toLowerCase()))
+
+  if (!imdbid) {
+    imdbid = (/\btt\d{7,}/.exec(foldername) || [''])[0]
   }
-  const category = argv[4]
-  const group = argv[5]
+  if (imdbid || tmdbid || tvdbid) {
+    force.add('tag')
+  }
+  if (!category) {
+    if (imdbid || tmdbid) {
+      category = 'movies'
+    }
+    else if (tvdbid) {
+      category = 'tv'
+    }
+    else {
+      category = inpath.toLowerCase().split(path.sep).includes('tv') ? 'tv' : 'movies'
+    }
+  }
+  sabArgs[0] = inpath
+  if (sabArgs.length < 7) {
+    sabArgs.length = 7
+    // The name of the job name without path or file extension.
+    sabArgs[2] = foldername
+    // The indexer's report number. It's not used by SABPostProcess.py.
+    sabArgs[3] = 0
+    // The user-defined category used to signal which manager is notified.
+    sabArgs[4] = category
+    // The group the NZB was posted in, e.g. alt.binaries.x. We use it to detect a "Manual Run".
+    sabArgs[5] = 'Manual Run'
+    // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
+    sabArgs[6] = 0
+    // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
+    sabArgs[1] = `${ foldername }.nzb`
+  }
+  const group = sabArgs[5]
   const isManual = group === 'Manual Run'
   const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
 
@@ -104,22 +137,27 @@
 
   /*--------------------------------------------------------------------------*/
 
-  const exec = (file, args) => (
-    execa(file, args, { 'maxBuffer': TWENTY_MEGABYTES })
-  )
-
   const execQuiet = (file, args) => (
     execa(file, args, { 'stdio': 'ignore' })
   )
 
-  const ffmpeg = (filepath, args) => (
-    execQuiet(FFMPEG_PATH, ['-loglevel', 'quiet', '-y', '-i', filepath, ...args])
-  )
+  const ffmpeg = (filepath, args) => {
+    const params = ['-loglevel', 'quiet', '-y', '-i', filepath, ...args]
+    return execQuiet(FFMPEG_PATH, params)
+  }
 
   const ffprobe = async (filepath) => {
     try {
-      const { stdout } = await exec(FFPROBE_PATH, ['-loglevel', 'quiet', '-print_format', 'json', '-show_streams', filepath])
+      const params = ['-loglevel', 'quiet', '-print_format', 'json', '-show_streams', filepath]
+      const { stdout } = await execa(FFPROBE_PATH, params)
       return JSON.parse(stdout).streams
+    } catch (e) {}
+    return []
+  }
+
+  const glob = async (patterns, opts) => {
+    try {
+      return await globby(patterns, opts)
     } catch (e) {}
     return []
   }
@@ -174,10 +212,6 @@
     rankMap.get(channel_layout) || 0
   )
 
-  const stripProgress = (string) => (
-    string.replace(/\r\[#* *\] \d+%/g, '')
-  )
-
   /*--------------------------------------------------------------------------*/
 
   const extractSubs = async (filepath, sublang, streams) => {
@@ -203,100 +237,147 @@
     try {
       if (maps.length) {
         await ffmpeg(filepath, ['-vn', '-an', '-scodec', 'srt', ...maps])
-        return true
       }
     } catch (e) {
       for (const subpath of seen.values()) {
         await remove(subpath)
       }
+      throw e
     }
-    return false
   }
 
   /*--------------------------------------------------------------------------*/
 
-  /**
-   * Inspect media and extract embedded subtitles.
-   *
-   * @param {string} inpath The path to process.
-   * @returns {boolean} Returns `true` if the step was executed, else `false`.
-   */
-  const stepOne = async (inpath) => {
-    const vidpaths = await isFile(inpath)
+  const transcode = async (filepath, args, opts) => {
+    const streams = await ffprobe(filepath)
+    const auds = getAudioStreams(streams)
+    const flac = firstOfCodec(auds, 'flac')
+    const fig = defaultsDeep({}, opts, config)
+
+    if (flac) {
+      fig.MP4['video-codec'] = 'h264,x264'
+      fig.MP4.ffmpeg = FFMPEG_PATH
+    }
+    const temppath = await tempWrite(ini.stringify(fig))
+    const params = ['--auto', '--convertmp4', '--config', temppath, '--input', filepath, ...args]
+    const spawned = execa(MANUAL_SCRIPT_PATH, params, {
+      'reject': true
+    })
+
+    const process = Object.assign(new Promise((resolve) => {
+      spawned
+        .then((result) => {
+          const errmsg = 'Error converting file, FFMPEG error.'
+          const { stdout } = result
+          if (stdout.includes(errmsg)) {
+            throw new Error(errmsg)
+          }
+          // Remove progress indicator.
+          result.stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
+          resolve(result)
+        })
+        .catch(async (e) => {
+          if (fig.MP4.ffmpeg === FFMPEG_PATH) {
+            throw e
+          }
+          fig.MP4.ffmpeg = FFMPEG_PATH
+          fig.MP4['video-codec'] = 'h264,x264'
+          const { process: respawned } = await transcode(filepath, args, fig)
+          respawned.stdout.pipe(spawned.stdout)
+          respawned.stderr.pipe(spawned.stderr)
+          respawned.then(resolve)
+        })
+    }), spawned)
+
+    return { process }
+  }
+
+  /*--------------------------------------------------------------------------*/
+
+  const getVideosToTranscode = async (inpath, force) => {
+    const filepaths = await isFile(inpath)
       ? [inpath]
-      : await globby('**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}', { 'cwd': inpath, 'realpath': true })
+      : await glob(GLOB_VIDEO, { 'cwd': inpath, 'realpath': true })
 
-    let result = false
-    for (const vidpath of vidpaths) {
-      const dirname = path.dirname(vidpath)
-      const basename = path.basename(vidpath)
-      const ext = path.extname(basename).toLowerCase()
-
-      console.log(`Inspecting ${ basename }.`)
-      const streams = await ffprobe(vidpath)
+    const result = []
+    for (const filepath of filepaths) {
+      const ext = path.extname(filepath).toLowerCase()
+      const streams = await ffprobe(filepath)
       const auds = getAudioStreams(streams)
       const subs = getSubStreams(streams)
-
       const stereos = getStereoStreams(auds)
       const aac = firstOfCodec(stereos, 'aac')
 
-      if (ext === '.mp4' && aac && !subs.length && auds.length < 3) {
-        continue
+      if (force || !(ext === '.mp4' && aac && !subs.length && auds.length < 3)) {
+        result.push({ filepath, streams })
       }
-      if (await extractSubs(vidpath, 'en', streams)) {
-        console.log(`Extracted subtitles for ${ basename }.`)
-      }
-      result = true
     }
     return result
   }
 
-  /**
-   * Convert avi/mkv/other to mp4.
-   *
-   * @param {string} inpath The path to process.
-   * @returns {boolean} Returns `true` if the step was executed, else `false`.
-   */
-  const stepTwo = async (inpath) => {
-    const tempfig = cloneDeep(config)
-    Object.assign(tempfig.MP4, { 'ios-audio': 'True', 'relocate_moov': 'False' })
+  const getVideosToTag = async (inpath, force) => {
+    const filepaths = await isFile(inpath)
+      ? [inpath]
+      : await glob(GLOB_MP4, { 'cwd': inpath, 'realpath': true })
 
-    const temppath = await tempWrite(ini.stringify(tempfig))
-    const spawned = exec(MANUAL_SCRIPT_PATH, ['--auto', '--convertmp4', '--notag', '--config', temppath, '--input', inpath])
+    const result = []
+    for (const filepath of filepaths) {
+      const streams = await ffprobe(filepath)
+      const vids = getVideoStreams(streams)
+      const mjpeg = firstOfCodec(vids, 'mjpeg')
 
-    if (isManual) {
-      spawned.stdout.pipe(process.stdout)
-    } else {
-      console.log(stripProgress(await getStream(spawned.stdout)))
+      if (force || !mjpeg) {
+        result.push({ filepath, streams })
+      }
     }
-    try {
-      await spawned
-    } catch (e) {
-      console.log('Operation failed.')
-    }
-    return true
+    return result
   }
 
-  /**
-   * Remove embedded subtitles and extra audio streams.
-   *
-   * @param {string} inpath The path to process.
-   * @returns {boolean} Returns `true` if the step was executed, else `false`.
-   */
-  const stepThree = async (inpath) => {
-    const vidpaths = await isFile(inpath)
-      ? [inpath]
-      : await globby('**/*.mp4', { 'cwd': inpath, 'realpath': true })
+  /*--------------------------------------------------------------------------*/
 
-    for (const vidpath of vidpaths) {
-      const dirname = path.dirname(vidpath)
-      const basename = path.basename(vidpath)
+  const extractSubsFromVideos = async (files) => {
+    for (const { filepath, streams } of files) {
+      try {
+        await extractSubs(filepath, 'en', streams)
+      } catch (e) {
+        const basename = path.basename(filepath)
+        console.log(`Failed to extract subtitles from ${ basename }.`)
+      }
+    }
+  }
+
+  const transcodeVideos = async (files) => {
+    for (const { filepath } of files) {
+      const { process: spawned } = await transcode(filepath, ['--notag'], {
+        'MP4': { 'ios-audio': 'True', 'relocate_moov': 'False' }
+      })
+      if (isManual) {
+        spawned.stdout.pipe(process.stdout)
+      }
+      try {
+        const { stdout } = await spawned
+        if (!isManual) {
+          console.log(stdout)
+        }
+      } catch (e) {
+        const basename = path.basename(filepath)
+        console.log(`Failed to transcode ${ basename }.`)
+      }
+    }
+  }
+
+  const removeEmbeddedSubsFromVideos = async (inpath) => {
+    const filepaths = await isFile(inpath)
+      ? [inpath]
+      : await glob(GLOB_MP4, { 'cwd': inpath, 'realpath': true })
+
+    for (const filepath of filepaths) {
+      const basename = path.basename(filepath)
+      const dirname = path.dirname(filepath)
       const bakpath = path.join(dirname, `${ basename }.original`)
 
-      console.log(`Post processing ${ basename }.`)
-      const streams = await ffprobe(vidpath)
-
       // Stable sort audio streams from highest to lowest ranked.
+      const streams = await ffprobe(filepath)
       const auds = getAudioStreams(streams)
         .sort((a, b) => a.rank > b.rank ? -1 : (a.rank < b.rank ? 1 : (a.index - b.index)))
 
@@ -316,127 +397,138 @@
       if (!maps.length) {
         maps.push('-map', '0:a')
       }
-      await move(vidpath, bakpath)
+      await move(filepath, bakpath)
+
       try {
-        console.log('Removing embedded subtitles and extra audio streams.')
-        await ffmpeg(bakpath, ['-codec', 'copy', '-sn', '-map_chapters', '-1', '-map', '0:v', ...maps, vidpath])
+        const args = ['-codec', 'copy', '-sn', '-map_chapters', '-1', '-map', '0:v', ...maps, filepath]
+        await ffmpeg(bakpath, args)
         await remove(bakpath)
       } catch (e) {
-        console.log('Operation failed.')
-        await move(bakpath, vidpath)
+        console.log(`Failed to remove subtitles from ${ basename }.`)
+        await move(bakpath, filepath)
       }
     }
-    return true
   }
 
-  /**
-   * Add metadata and optimize for streaming.
-   *
-   * @param {string} inpath The path to process.
-   * @returns {boolean} Returns `true` if the step was executed, else `false`.
-   */
-  const stepFour = async (inpath) => {
-    console.log('Adding metadata and optimizing for streaming.')
-    const args = ['--auto', '--convertmp4', '--config', confpath, '--input', inpath]
+  /*--------------------------------------------------------------------------*/
+
+  const tagVideos = async (files) => {
+    const args = []
     if (imdbid) {
       args.push('--imdbid', imdbid)
     }
-    const spawned = exec(MANUAL_SCRIPT_PATH, args)
-    if (isManual) {
-      spawned.stdout.pipe(process.stdout)
-    } else {
-      console.log(stripProgress(await getStream(spawned.stdout)))
+    if (tmdbid) {
+        args.push('--tmdbid', tmdbid)
     }
-    try {
-      await spawned
-    } catch (e) {
-      console.log('Operation failed.')
+    if (tvdbid) {
+      args.push('--tvdbid', tvdbid)
     }
-    return true
+    for (const { filepath } of files) {
+      const { process: spawned } = await transcode(filepath, args)
+      if (isManual) {
+        spawned.stdout.pipe(process.stdout)
+      }
+      try {
+        const { stdout } = await spawned
+        if (!isManual) {
+          console.log(stdout)
+        }
+      } catch (e) {
+        const basename = path.basename(filepath)
+        console.log(`Failed to tag ${ basename }.`)
+      }
+    }
   }
 
-  /**
-   * Move video folder to the watched location.
-   *
-   * @param {string} inpath The path to process.
-   * @returns {boolean} Returns `true` if the step was executed, else `false`.
-   */
-  const stepFive = async (inpath) => {
-    console.log('Moving video folder to the watched location.')
+  /*--------------------------------------------------------------------------*/
+
+  const renameVideos = async (inpath) => {
     await move(inpath, outpath)
 
     try {
       // Since `SABNZBD` is configured with `convert = False`
       // invoking SABPostProcess.py will simply start a renamer scan.
-      console.log(`Starting ${ manager } renamer scan.`)
-      const spawned = exec(SAB_SCRIPT_PATH, argv)
+      const spawned = execa(SAB_SCRIPT_PATH, sabArgs)
       spawned.stdout.pipe(process.stdout)
       await spawned
     } catch (e) {
-      console.log('Operation failed.')
-      return true
+      console.log('Failed to start renamer scan.')
+      await move(outpath, inpath)
+      return false
     }
-    console.log('Finding renamed video folder.')
-    const dirpaths = await globby('**/', {
+    return true
+  }
+
+  const findVideosFolder = async () => {
+    // Finding renamed video folder.
+    const dirpaths = await glob('*/', {
       'cwd': libpath,
       'realpath': true
     })
 
-    if (!dirpaths.length) {
-      return true
+    const dirobjs = [libpath]
+    for (const dirpath of dirpaths) {
+      dirobjs.push({ 'value': dirpath, 'time': (await stat(dirpath)).mtime.getTime() })
     }
     // Sort folders from newest to oldest.
-    const dirpath = dirpaths
-      .map((dirpath) => ({ 'value': dirpath, 'time': fs.statSync(dirpath).mtime.getTime() }))
+    return dirobjs
       .sort((a, b) => b.time - a.time)
       .map(({ value }) => value)[0]
+  }
 
-    const leftpaths = await globby(['*', '!*.{avi,mkv,mov,mp4,mpg,mts,srt,ts,vob}'], {
+  const cleanupFolder = async (dirpath) => {
+    const subpaths = await glob(GLOB_SRT, {
       'cwd': dirpath,
       'realpath': true
     })
-
-    const subpaths = await globby('*.srt', {
-      'cwd': dirpath,
-      'realpath': true
-    })
-
-    console.log('Scanning for misnamed subtitles.')
+    // Scanning for misnamed subtitles.
     for (const subpath of subpaths) {
-      const dirname = path.dirname(subpath)
-      const basename = path.basename(subpath)
-      const parts = basename.split('.')
+      const parts = path.basename(subpath).split('.')
       if (parts[1] !== 'en') {
         // Add "en" language code to subtitle name.
         parts.splice(1, 0, 'en')
         const rename = parts.join('.')
-        console.log(`Renaming ${ basename } to ${ rename }.`)
+        const dirname = path.dirname(subpath)
         await move(subpath, path.join(dirname, rename))
       }
     }
-    console.log('Scanning for leftover files.')
+    const leftpaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], {
+      'cwd': dirpath,
+      'realpath': true
+    })
+    // Scanning for leftover files.
     for (const leftpath of leftpaths) {
       const basename = path.basename(leftpath)
       console.log(`Removing ${ basename }.`)
       await remove(leftpath)
     }
-    return true
   }
 
   /*--------------------------------------------------------------------------*/
 
   console.log(`Processing video folder ${ foldername }.`)
-  if (await stepOne(inpath)) {
-    console.log('Running first pass of mp4 automator.')
-    await stepTwo(inpath)
-    await stepThree(inpath)
-  } else {
-    console.log('Skipping first pass of mp4 automator.')
+
+  const vidsToTranscode = await getVideosToTranscode(inpath, force.has('transcode'))
+  if (vidsToTranscode.length) {
+    console.log('Extracting subtitles.')
+    await extractSubsFromVideos(vidsToTranscode)
+
+    console.log('Transcoding videos.')
+    await transcodeVideos(vidsToTranscode)
+
+    console.log('Removing embedded subtitles.')
+    await removeEmbeddedSubsFromVideos(inpath)
   }
-  console.log('Running second pass of mp4 automator.')
-  await stepFour(inpath)
+  const vidsToTag = await getVideosToTag(inpath, force.has('tag'))
+  if (vidsToTag.length) {
+    console.log('Adding metadata.')
+    await tagVideos(vidsToTag)
+  }
   if (!isPathInside(inpath, libpath)) {
-    await stepFive(inpath)
+    console.log(`Starting ${ manager } renamer scan.`)
+    if (await renameVideos(inpath)) {
+      await cleanupFolder(await findVideosFolder())
+    }
   }
   console.log('Completed.')
 }())
