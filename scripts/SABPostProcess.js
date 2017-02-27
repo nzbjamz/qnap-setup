@@ -530,8 +530,8 @@
   const group = argv[5]
   const isManual = group === 'Manual Run'
 
-  const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
   const outpath = path.join(WATCH_PATH, category, foldername)
+  const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
 
   /*--------------------------------------------------------------------------*/
 
