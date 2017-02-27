@@ -529,7 +529,6 @@
   }
   const group = argv[5]
   const isManual = group === 'Manual Run'
-  const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
 
   const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
   const outpath = path.join(WATCH_PATH, category, foldername)
@@ -555,6 +554,7 @@
     await tagVideos(vidsToTag)
   }
   if (!isPathInside(inpath, libpath)) {
+    const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
     console.log(`Starting ${ manager } renamer scan.`)
     if (await renameVideos(inpath, outpath)) {
       await cleanupFolder(await findVideosFolder(libpath))
