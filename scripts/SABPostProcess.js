@@ -429,7 +429,7 @@
 
   /*--------------------------------------------------------------------------*/
 
-  const renameVideos = async (inpath) => {
+  const renameVideos = async (inpath, outpath) => {
     await move(inpath, outpath)
 
     try {
@@ -556,7 +556,7 @@
   }
   if (!isPathInside(inpath, libpath)) {
     console.log(`Starting ${ manager } renamer scan.`)
-    if (await renameVideos(inpath)) {
+    if (await renameVideos(inpath, outpath)) {
       await cleanupFolder(await findVideosFolder(libpath))
     }
   }
