@@ -453,7 +453,8 @@
       'realpath': true
     })
 
-    const dirobjs = [inpath]
+    dirpaths.push(inpath)
+    const dirobjs = []
     for (const dirpath of dirpaths) {
       dirobjs.push({ 'value': dirpath, 'time': (await stat(dirpath)).mtime.getTime() })
     }
