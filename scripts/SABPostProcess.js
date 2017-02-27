@@ -168,13 +168,14 @@
 
   /*--------------------------------------------------------------------------*/
 
-  const extractSubs = async (filepath, sublang, streams) => {
-    streams || (streams = await ffprobe(filepath))
-    const dirname = path.dirname(filepath)
+  const extractSubs = async (file, sublang) => {
+    const { filepath, streams } = file
     const basename = path.basename(filepath, path.extname(filepath))
+    const dirname = path.dirname(filepath)
+    const subs = getSubStreams(streams)
     const seen = new Map
 
-    const maps = getSubStreams(streams).reduce((maps, sub) => {
+    const maps = subs.reduce((maps, sub) => {
       const { disposition, lang } = sub
       if (disposition.default || sublang == null || lang === sublang) {
         const labels = Object.keys(disposition).filter((key) => key !== 'default' && disposition[key])
@@ -303,10 +304,11 @@
   }
 
   const extractSubsFromVideos = async (files) => {
-    for (const { filepath, streams } of files) {
+    for (const file of files) {
       try {
-        await extractSubs(filepath, 'en', streams)
+        await extractSubs(file, 'en')
       } catch (e) {
+        const { filepath } = file
         const basename = path.basename(filepath)
         console.log(`Failed to extract subtitles from ${ basename }.`)
       }
