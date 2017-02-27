@@ -7,6 +7,7 @@
   const execa = require('execa')
   const fs = require('fs-extra')
   const globby = require('globby')
+  const imdb = require('imdb-search')
   const ini = require('ini')
   const isPathInside = require('path-is-inside')
   const path = require('path')
@@ -51,53 +52,6 @@
 
   const confpath = path.join(__dirname, 'autoProcess.ini')
   const config = ini.parse(await read(confpath, 'utf8'))
-
-  const sabArgs = yargs.argv._.slice()
-  const inpath = path.resolve(sabArgs[0] || process.cwd())
-  const foldername = await isFile(inpath) ? path.basename(path.dirname(inpath)) : path.basename(inpath)
-
-  let { category=sabArgs[4], force=[], imdbid='', tmdbid='', tvdbid='' } = yargs.argv
-  force = new Set(force.map((value) => value.toLowerCase()))
-
-  if (!imdbid) {
-    imdbid = (/\btt\d{7,}/.exec(foldername) || [''])[0]
-  }
-  if (imdbid || tmdbid || tvdbid) {
-    force.add('tag')
-  }
-  if (!category) {
-    if (imdbid || tmdbid) {
-      category = 'movies'
-    }
-    else if (tvdbid) {
-      category = 'tv'
-    }
-    else {
-      category = inpath.toLowerCase().split(path.sep).includes('tv') ? 'tv' : 'movies'
-    }
-  }
-  sabArgs[0] = inpath
-  if (sabArgs.length < 7) {
-    sabArgs.length = 7
-    // The name of the job name without path or file extension.
-    sabArgs[2] = foldername
-    // The indexer's report number. It's not used by SABPostProcess.py.
-    sabArgs[3] = 0
-    // The user-defined category used to signal which manager is notified.
-    sabArgs[4] = category
-    // The group the NZB was posted in, e.g. alt.binaries.x. We use it to detect a "Manual Run".
-    sabArgs[5] = 'Manual Run'
-    // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
-    sabArgs[6] = 0
-    // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
-    sabArgs[1] = `${ foldername }.nzb`
-  }
-  const group = sabArgs[5]
-  const isManual = group === 'Manual Run'
-  const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
-
-  const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
-  const outpath = path.join(WATCH_PATH, category, foldername)
 
   const langMap = new Map(Object.entries({
     'eng': 'en',
@@ -246,7 +200,40 @@
     }
   }
 
-  /*--------------------------------------------------------------------------*/
+  const getCategory = (inpath) => {
+    const lowerpath = inpath.toLowerCase()
+    if (/\b(?:season \d+|s\d+e\d+)\b/.test(lowerpath) ||
+        lowerpath.split(path.sep).includes('tv')) {
+      return 'tv'
+    }
+    return 'movies'
+  }
+
+  const getImdbId = async (inpath) => {
+    const filepaths = await isFile(inpath)
+      ? [inpath]
+      : await glob(GLOB_VIDEO, { 'cwd': inpath, 'realpath': true })
+
+    const extracted = /\btt\d{7,}\b/.exec(inpath)
+    if (extracted) {
+      return extracted[0]
+    }
+    if (filepaths.length) {
+      const filepath = filepaths[0]
+      const basename = path.basename(filepath, path.extname(filepath))
+      const parts = /^(.+?)(?:, *(the|an?)\b)?(?: *\((\d+)\))?(?: *cd(\d+))?$/i.exec(basename)
+
+      const the = parts[2]
+      const title = (the ? the + ' ' : '') + parts[1]
+      const type = getCategory(filepath) === 'movies' ? 'movie' : 'episode'
+      const year = parts[3]
+
+      try {
+        return (await imdb.search(title, year, type))[0].imdb
+      } catch (e) {}
+    }
+    return ''
+  }
 
   const transcode = async (filepath, args, opts) => {
     const streams = await ffprobe(filepath)
@@ -314,26 +301,6 @@
     }
     return result
   }
-
-  const getVideosToTag = async (inpath, force) => {
-    const filepaths = await isFile(inpath)
-      ? [inpath]
-      : await glob(GLOB_MP4, { 'cwd': inpath, 'realpath': true })
-
-    const result = []
-    for (const filepath of filepaths) {
-      const streams = await ffprobe(filepath)
-      const vids = getVideoStreams(streams)
-      const mjpeg = firstOfCodec(vids, 'mjpeg')
-
-      if (force || !mjpeg) {
-        result.push({ filepath, streams })
-      }
-    }
-    return result
-  }
-
-  /*--------------------------------------------------------------------------*/
 
   const extractSubsFromVideos = async (files) => {
     for (const { filepath, streams } of files) {
@@ -411,6 +378,24 @@
   }
 
   /*--------------------------------------------------------------------------*/
+
+  const getVideosToTag = async (inpath, force) => {
+    const filepaths = await isFile(inpath)
+      ? [inpath]
+      : await glob(GLOB_MP4, { 'cwd': inpath, 'realpath': true })
+
+    const result = []
+    for (const filepath of filepaths) {
+      const streams = await ffprobe(filepath)
+      const vids = getVideoStreams(streams)
+      const mjpeg = firstOfCodec(vids, 'mjpeg')
+
+      if (force || !mjpeg) {
+        result.push({ filepath, streams })
+      }
+    }
+    return result
+  }
 
   const tagVideos = async (files) => {
     const args = []
@@ -506,7 +491,50 @@
 
   /*--------------------------------------------------------------------------*/
 
-  console.log(`Processing video folder ${ foldername }.`)
+  const sabArgs = yargs.argv._.slice()
+  const inpath = path.resolve(sabArgs[0] || process.cwd())
+  const inpathIsFile = await isFile(inpath)
+  const filename = inpathIsFile ? path.basename(inpath) : ''
+  const foldername = inpathIsFile ? path.basename(path.dirname(inpath)) : path.basename(inpath)
+
+  let { category=sabArgs[4], force=[], imdbid='', tmdbid='', tvdbid='' } = yargs.argv
+  force = new Set(force.map((value) => value.toLowerCase()))
+
+  if (imdbid || tmdbid || tvdbid) {
+    force.add('tag')
+  }
+  if (!category) {
+    category = getCategory(inpath)
+  }
+  if (!imdbid) {
+    imdbid = await getImdbId(inpath)
+  }
+  sabArgs[0] = inpath
+  if (sabArgs.length < 7) {
+    sabArgs.length = 7
+    // The name of the job name without path or file extension.
+    sabArgs[2] = foldername
+    // The indexer's report number. It's not used by SABPostProcess.py.
+    sabArgs[3] = 0
+    // The user-defined category used to signal which manager is notified.
+    sabArgs[4] = category
+    // The group the NZB was posted in, e.g. alt.binaries.x. We use it to detect a "Manual Run".
+    sabArgs[5] = 'Manual Run'
+    // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
+    sabArgs[6] = 0
+    // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
+    sabArgs[1] = `${ foldername }.nzb`
+  }
+  const group = sabArgs[5]
+  const isManual = group === 'Manual Run'
+  const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
+
+  const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
+  const outpath = path.join(WATCH_PATH, category, foldername)
+
+  /*--------------------------------------------------------------------------*/
+
+  console.log(`Processing video folder ${ filename || foldername }.`)
 
   const vidsToTranscode = await getVideosToTranscode(inpath, force.has('transcode'))
   if (vidsToTranscode.length) {
