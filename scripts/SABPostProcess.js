@@ -446,14 +446,14 @@
     return true
   }
 
-  const findVideosFolder = async () => {
+  const findVideosFolder = async (inpath) => {
     // Finding renamed video folder.
     const dirpaths = await glob('*/', {
-      'cwd': libpath,
+      'cwd': inpath,
       'realpath': true
     })
 
-    const dirobjs = [libpath]
+    const dirobjs = [inpath]
     for (const dirpath of dirpaths) {
       dirobjs.push({ 'value': dirpath, 'time': (await stat(dirpath)).mtime.getTime() })
     }
@@ -557,7 +557,7 @@
   if (!isPathInside(inpath, libpath)) {
     console.log(`Starting ${ manager } renamer scan.`)
     if (await renameVideos(inpath)) {
-      await cleanupFolder(await findVideosFolder())
+      await cleanupFolder(await findVideosFolder(libpath))
     }
   }
   console.log('Completed.')
