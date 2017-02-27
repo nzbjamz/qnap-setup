@@ -435,7 +435,7 @@
     try {
       // Since `SABNZBD` is configured with `convert = False`
       // invoking SABPostProcess.py will simply start a renamer scan.
-      const spawned = execa(SAB_SCRIPT_PATH, sabArgs)
+      const spawned = execa(SAB_SCRIPT_PATH, argv)
       spawned.stdout.pipe(process.stdout)
       await spawned
     } catch (e) {
@@ -493,13 +493,13 @@
 
   /*--------------------------------------------------------------------------*/
 
-  const sabArgs = yargs.argv._.slice()
-  const inpath = path.resolve(sabArgs[0] || process.cwd())
+  const argv = yargs.argv._.slice()
+  const inpath = path.resolve(argv[0] || process.cwd())
   const inpathIsFile = await isFile(inpath)
   const filename = inpathIsFile ? path.basename(inpath) : ''
   const foldername = inpathIsFile ? path.basename(path.dirname(inpath)) : path.basename(inpath)
 
-  let { category=sabArgs[4], force=[], imdbid='', tmdbid='', tvdbid='' } = yargs.argv
+  let { category=argv[4], force=[], imdbid='', tmdbid='', tvdbid='' } = yargs.argv
   force = new Set(force.map((value) => value.toLowerCase()))
 
   if (imdbid || tmdbid || tvdbid) {
@@ -511,23 +511,23 @@
   if (!imdbid) {
     imdbid = await getImdbId(inpath)
   }
-  sabArgs[0] = inpath
-  if (sabArgs.length < 7) {
-    sabArgs.length = 7
+  argv[0] = inpath
+  if (argv.length < 7) {
+    argv.length = 7
     // The name of the job name without path or file extension.
-    sabArgs[2] = foldername
+    argv[2] = foldername
     // The indexer's report number. It's not used by SABPostProcess.py.
-    sabArgs[3] = 0
+    argv[3] = 0
     // The user-defined category used to signal which manager is notified.
-    sabArgs[4] = category
+    argv[4] = category
     // The group the NZB was posted in, e.g. alt.binaries.x. We use it to detect a "Manual Run".
-    sabArgs[5] = 'Manual Run'
+    argv[5] = 'Manual Run'
     // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
-    sabArgs[6] = 0
+    argv[6] = 0
     // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
-    sabArgs[1] = `${ foldername }.nzb`
+    argv[1] = `${ foldername }.nzb`
   }
-  const group = sabArgs[5]
+  const group = argv[5]
   const isManual = group === 'Manual Run'
   const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
 
