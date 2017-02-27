@@ -464,9 +464,9 @@
       .map(({ value }) => value)[0]
   }
 
-  const cleanupFolder = async (dirpath) => {
+  const cleanupFolder = async (inpath) => {
     const subpaths = await glob(GLOB_SRT, {
-      'cwd': dirpath,
+      'cwd': inpath,
       'realpath': true
     })
     // Scanning for misnamed subtitles.
@@ -481,7 +481,7 @@
       }
     }
     const leftpaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], {
-      'cwd': dirpath,
+      'cwd': inpath,
       'realpath': true
     })
     // Scanning for leftover files.
