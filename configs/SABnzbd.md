@@ -66,5 +66,5 @@
 
   * ✓ Enable Indexer Integration
   * ✓ Automatic Feedback
-  * Server address: `<INDEXER_API_ADDRESS>`
+  * Server address: `<INDEXER_API_URL>`
   * API Key: `<INDEXER_API_KEY>`

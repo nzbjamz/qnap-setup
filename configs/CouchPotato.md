@@ -18,9 +18,9 @@
   * Usenet Retention: `<INDEXER_RETENTION>`
   * Add your indexer
 
-  |Host                    |Api Key             |Extra Score |Custom Tag |
-  |:--                     |:--                 |:--         |:--        |
-  |`<INDEXER_API_ADDRESS>` |`<INDEXER_API_KEY>` |0           |`<EMPTY>`  |
+  |Host                |Api Key             |Extra Score |Custom Tag |
+  |:--                 |:--                 |:--         |:--        |
+  |`<INDEXER_API_URL>` |`<INDEXER_API_KEY>` |0           |`<EMPTY>`  |
 
 ## Categories
 
