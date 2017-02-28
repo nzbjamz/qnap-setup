@@ -41,6 +41,11 @@
 ### Indexers
 
   * Add your indexer
+    * Enable RSS Sync: `Yes`
+    * Enable Search: `Yes`
+    * URL: `<INDEXER_API_URL>`
+    * API Key: `<INDEXER_API_KEY>`
+    * Categories: `5030,5040`
 
 ### Options
 
