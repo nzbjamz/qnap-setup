@@ -42,9 +42,13 @@
 
 ## Downloaders
 
+  * ✗ Black hole
   * Add your download client
-  * ✓ Ssl
-  * Category: `movies`
+    * Host: `localhost:<DOWNLOADER_PORT>`
+    * ✓ Ssl
+    * Api Key: `<DOWNLOADER_API_KEY>`
+    * Category: `movies`
+    * ✗ Delete Failed
 
 ## Renamer
 
@@ -66,6 +70,8 @@
 ## Notifications
 
   * Add your Plex Media Server
+    * Host: `localhost:<PLEX_PORT>`
+    * Auth Token: `<PLEX_TOKEN>`
 
 ## Manage
 

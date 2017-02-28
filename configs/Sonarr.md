@@ -51,8 +51,12 @@
 ### Download Clients
 
   * Add your download client
-  * Category: `tv`
-  * Use SSL: `Yes`
+    * Enable: `Yes`
+    * Host: `localhost`
+    * Port: `<DOWNLOADER_PORT>`
+    * API Key: `<DOWNLOADER_API_KEY>`
+    * Category: `tv`
+    * Use SSL: `Yes`
 
 ### Completed Download Handling
 
@@ -74,6 +78,16 @@
 ### Connections
 
   * Add your Plex Media Server
+    * On Grab: `No`
+    * On Download: `Yes`
+    * On Upgrade: `Yes`
+    * On Rename: `Yes`
+    * Host: `localhost`
+    * Port: `<PLEX_PORT>`
+    * Username: `<PLEX_USERNAME>`
+    * Password: `<PLEX_PASSWORD>`
+    * Update Library: `Yes`
+    * Use SSL: `Yes`
 
 ## General
 
