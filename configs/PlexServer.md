@@ -26,4 +26,6 @@ You can find your Plex token by viewing the details of an item in your library:
     * ✓ Store subtitles next to media files (instead of metadata)
     * ✓ Automatically delete leftover/unused (externally saved) subtitles
     * ✓ Scheduler: Overwrite manually selected subtitles when better found
+    * Call this executable upon successful subtitle download:<br>
+      `/share/CACHEDEV1_DATA/scripts/scrubsubs.js %(subtitle_path)s`
     * ✓ Check for correct folder permissions of every library on plugin start

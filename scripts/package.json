@@ -15,6 +15,7 @@
     "lodash": "^4.17.4",
     "path-is-inside": "^1.0.2",
     "pify": "^2.3.0",
+    "subtitle": "^0.1.5",
     "temp-write": "^3.1.0",
     "yargs": "^6.6.0"
   }
