@@ -71,7 +71,7 @@
 
   /*--------------------------------------------------------------------------*/
 
-  const scrubsubs = async (inpath) => {
+  const subscrub = async (inpath) => {
     const filepaths = await isFile(inpath)
       ? [inpath]
       : await glob('**/*.srt', { 'cwd': inpath, 'realpath': true })
@@ -127,5 +127,5 @@
 
   console.log(`Processing video folder ${ filename || foldername }.`)
 
-  await scrubsubs(inpath)
+  await subscrub(inpath)
 }())
