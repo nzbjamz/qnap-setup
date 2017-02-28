@@ -40,7 +40,7 @@ echo 'Updating SABnzbd.'
 
 cd /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/
 rm -rf SABnzbd
-git clone --quiet --depth=1 --branch=1.2.1RC1 git://github.com/sabnzbd/sabnzbd.git SABnzbd > /dev/null 2>&1
+git clone --quiet --depth=1 --branch=master git://github.com/sabnzbd/sabnzbd.git SABnzbd > /dev/null 2>&1
 
 cd /share/CACHEDEV1_DATA/
 
