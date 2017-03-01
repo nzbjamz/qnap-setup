@@ -29,7 +29,6 @@ const isFile = async (p) => (await stat(p)).isFile()
 const binary = (func) => (a, b) => func(a, b)
 const unary = (func) => (a) => func(a)
 
-const move = binary(pify(fs.move))
 const read = binary(pify(fs.readFile))
 const remove = unary(pify(fs.remove))
 const stat = unary(pify(fs.stat))
@@ -112,6 +111,14 @@ const glob = async (patterns, opts) => {
     return await globby(patterns, opts)
   } catch (e) {}
   return []
+}
+
+const move = async (inpath, outpath) => {
+  // Avoid buggy `fs.move`.
+  const resolved = path.resolve(outpath)
+  const dirpath = outpath.endsWith('/') ? resolved : path.dirname(resolved)
+  await fs.ensureDir(dirpath)
+  execQuiet('mv', [path.resolve(inpath), resolved])
 }
 
 /*----------------------------------------------------------------------------*/
