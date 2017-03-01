@@ -12,6 +12,7 @@ const path = require('path')
 const pify = require('pify')
 const subscrub = require('./subscrub.js')
 const tempWrite = require('temp-write')
+const trash = require('trash')
 
 const { argv } = require('yargs')
   .string('category')
@@ -490,7 +491,7 @@ const renameVideos = async (inpath, outpath) => {
 
 const findVideosFolder = async (inpath) => {
   // Finding renamed video folder.
-  const dirpaths = await glob('*/', {
+  const dirpaths = await glob('**/', {
     'cwd': inpath,
     'realpath': true
   })
@@ -526,13 +527,14 @@ const cleanupFolder = async (inpath) => {
   }
   const leftpaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], {
     'cwd': inpath,
+    'nodir': true,
     'realpath': true
   })
   // Scanning for leftover files.
   for (const leftpath of leftpaths) {
     const basename = path.basename(leftpath)
-    console.log(`Removing ${ basename }.`)
-    await remove(leftpath)
+    console.log(`Trashing ${ basename }.`)
+    await trash(leftpath)
   }
 }
 
