@@ -493,6 +493,7 @@ const findVideosFolder = async (inpath) => {
   // Finding renamed video folder.
   const dirpaths = await glob('**/', {
     'cwd': inpath,
+    'nosort': true,
     'realpath': true
   })
 
