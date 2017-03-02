@@ -8,6 +8,7 @@ const globby = require('globby')
 const imdb = require('imdb-search')
 const ini = require('ini')
 const isPathInside = require('path-is-inside')
+const moment = require('moment')
 const path = require('path')
 const pify = require('pify')
 const subscrub = require('./subscrub.js')
@@ -498,7 +499,7 @@ const findVideosFolder = async (inpath) => {
   dirpaths.push(inpath)
   const dirobjs = []
   for (const dirpath of dirpaths) {
-    dirobjs.push({ 'value': dirpath, 'time': (await stat(dirpath)).mtime.getTime() })
+    dirobjs.push({ 'value': dirpath, 'time': (await stat(dirpath)).mtime })
   }
   // Sort folders from newest to oldest.
   return dirobjs
@@ -507,33 +508,38 @@ const findVideosFolder = async (inpath) => {
 }
 
 const cleanupFolder = async (inpath) => {
-  const subpaths = await glob(GLOB_SRT, {
+  const now = moment()
+  const before = now.subtract(5, 'minutes')
+
+  const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], {
     'cwd': inpath,
-    'realpath': true
-  })
-  for (let subpath of subpaths) {
-    const parts = path.basename(subpath).split('.')
-    if (parts[1] !== 'en') {
-      // Add "en" language code to subtitle name.
-      parts.splice(1, 0, 'en')
-      const rename = parts.join('.')
-      const dirname = path.dirname(subpath)
-      const repath = path.join(dirname, rename)
-      await move(subpath, repath)
-      subpath = repath
-    }
-    await subscrub(subpath)
-  }
-  const leftpaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], {
-    'cwd': inpath,
+    'nocase': true,
     'nodir': true,
     'realpath': true
   })
-  // Scanning for leftover files.
-  for (const leftpath of leftpaths) {
-    const basename = path.basename(leftpath)
-    console.log(`Trashing ${ basename }.`)
-    await trash(leftpath)
+
+  for (let filepath of filepaths) {
+    const { mtime } = await stat(filepath)
+    if (moment(mtime).isBetween(before, now, null, '[]')) {
+      const basename = path.basename(filepath)
+      const dirname = path.dirname(filepath)
+      const ext = path.extname(filepath).toLowerCase()
+      if (ext === '.srt') {
+        const parts = basename.split('.')
+        if (parts[1] !== 'en') {
+          // Add "en" language code to subtitle name.
+          parts.splice(1, 0, 'en')
+          const repath = path.join(dirname, parts.join('.'))
+          await move(filepath, repath)
+          filepath = repath
+        }
+        await subscrub(filepath)
+      }
+      else {
+        console.log(`Trashing ${ basename }.`)
+        await trash(filepath)
+      }
+    }
   }
 }
 
