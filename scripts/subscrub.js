@@ -72,7 +72,7 @@ const isBogus = (text='') => (
 const subscrub = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob('**/*.srt', { 'cwd': inpath, 'realpath': true })
+    : await glob('**/*.srt', { 'cwd': inpath, 'nocase': true, 'realpath': true })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)

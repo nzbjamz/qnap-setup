@@ -197,7 +197,7 @@ const getImdbId = async (inpath) => {
   }
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'realpath': true })
+    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nocase': true, 'realpath': true })
 
   if (filepaths.length) {
     const filepath = filepaths[0]
@@ -307,7 +307,7 @@ const transcode = async (filepath, args, opts) => {
 const getVideosToTranscode = async (inpath, force) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'realpath': true })
+    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nocase': true, 'realpath': true })
 
   const result = []
   for (const filepath of filepaths) {
@@ -360,7 +360,7 @@ const transcodeVideos = async (files) => {
 const removeEmbeddedSubsFromVideos = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath, 'realpath': true })
+    : await glob(GLOB_MP4, { 'cwd': inpath, 'nocase': true, 'realpath': true })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
@@ -406,7 +406,7 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
 const getVideosToTag = async (inpath, force) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath, 'realpath': true })
+    : await glob(GLOB_MP4, { 'cwd': inpath, 'nocase': true, 'realpath': true })
 
   const result = []
   for (const filepath of filepaths) {
