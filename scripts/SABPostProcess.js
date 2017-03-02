@@ -110,8 +110,12 @@ const ffprobe = async (filepath) => {
 
 const glob = async (patterns, opts) => {
   try {
-    opts = Object.assign({ 'noext': true, 'strict': true }, opts)
-    return await globby(patterns, opts)
+    return await globby(patterns, Object.assign({
+      'nocase': true,
+      'noext': true,
+      'realpath': true,
+      'strict': true
+    }, opts))
   } catch (e) {}
   return []
 }
@@ -199,7 +203,7 @@ const getImdbId = async (inpath) => {
   }
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nocase': true, 'realpath': true })
+    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nodir': true })
 
   if (filepaths.length) {
     const filepath = filepaths[0]
@@ -309,7 +313,7 @@ const transcode = async (filepath, args, opts) => {
 const getVideosToTranscode = async (inpath, force) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nocase': true, 'realpath': true })
+    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nodir': true })
 
   const result = []
   for (const filepath of filepaths) {
@@ -362,7 +366,7 @@ const transcodeVideos = async (files) => {
 const removeEmbeddedSubsFromVideos = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath, 'nocase': true, 'realpath': true })
+    : await glob(GLOB_MP4, { 'cwd': inpath, 'nodir': true })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
@@ -408,7 +412,7 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
 const getVideosToTag = async (inpath, force) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath, 'nocase': true, 'realpath': true })
+    : await glob(GLOB_MP4, { 'cwd': inpath, 'nodir': true })
 
   const result = []
   for (const filepath of filepaths) {
