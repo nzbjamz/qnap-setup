@@ -116,10 +116,9 @@ const glob = async (patterns, opts) => {
 
 const move = async (inpath, outpath) => {
   // Avoid buggy `fs.move`.
-  const resolved = path.resolve(outpath)
-  const dirpath = outpath.endsWith('/') ? resolved : path.dirname(resolved)
-  await fs.ensureDir(dirpath)
-  execQuiet('mv', [path.resolve(inpath), resolved])
+  outpath = path.resolve(outpath)
+  await fs.ensureDir(path.dirname(outpath))
+  return execQuiet('mv', [path.resolve(inpath), outpath])
 }
 
 /*----------------------------------------------------------------------------*/
