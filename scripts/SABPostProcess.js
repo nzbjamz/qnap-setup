@@ -133,6 +133,10 @@ const cloneDeep = (object) => (
   JSON.parse(JSON.stringify(object))
 )
 
+const delay = (func, wait) => (
+  new Promise((resolve) => setTimeout(() => resolve(func()), wait))
+)
+
 const firstOfCodec = (streams, codec) => (
   streams.find(({ codec_name }) => codec_name === codec)
 )
