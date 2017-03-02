@@ -110,7 +110,7 @@ const ffprobe = async (filepath) => {
 
 const glob = async (patterns, opts) => {
   try {
-    opts = Object.assign({ 'strict': true }, opts)
+    opts = Object.assign({ 'noext': true, 'strict': true }, opts)
     return await globby(patterns, opts)
   } catch (e) {}
   return []
