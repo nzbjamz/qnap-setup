@@ -49,8 +49,6 @@ const isBogus = (text='') => (
   reAddress.test(text) || reContact.test(text) || reKeywords.test(text) || reProviders.test(text)
 )
 
-/*----------------------------------------------------------------------------*/
-
 const subscrub = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
