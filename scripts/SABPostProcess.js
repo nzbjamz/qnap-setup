@@ -517,12 +517,11 @@ const renameVideos = async (inpath, outpath) => {
 }
 
 const getNewestVideo = async (inpath) => {
-  const globpaths = await glob(GLOB_MP4, { 'cwd': inpath, 'nosort': true })
-  globpaths.push(inpath)
+  const filepaths = await glob(GLOB_MP4, { 'cwd': inpath, 'nosort': true })
 
   const objs = []
-  for (const globpath of globpaths) {
-    objs.push({ 'value': globpath, 'time': (await stat(globpath)).mtime })
+  for (const filepath of filepaths) {
+    objs.push({ 'value': filepath, 'time': (await stat(filepath)).mtime })
   }
   // Sort from newest to oldest.
   return objs
