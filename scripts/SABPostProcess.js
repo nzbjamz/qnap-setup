@@ -535,7 +535,6 @@ const restoreSubs = async (inpath, subs) => {
   const dirname = path.dirname(inpath)
   for (const { filepath, captions } of subs) {
     const ext = /\.en\.(?:\w+\.)*?srt$/.exec(path.basename(filepath))[0]
-    console.log('writing subs', path.join(dirname, basename + ext))
     await write(path.join(dirname, basename + ext), captions.stringify())
   }
 }
