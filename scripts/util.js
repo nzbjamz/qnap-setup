@@ -7,14 +7,11 @@ const pify = require('pify')
 
 /*----------------------------------------------------------------------------*/
 
-const binary = (func) => (a, b) => func(a, b)
-const unary = (func) => (a) => func(a)
-
 const isFile = async (p) => (await stat(p)).isFile()
-const read = binary(pify(fs.readFile))
-const remove = unary(pify(fs.remove))
-const stat = unary(pify(fs.stat))
-const write = binary(pify(fs.outputFile))
+const read = pify(fs.readFile)
+const remove = pify(fs.remove)
+const stat = pify(fs.stat)
+const write = pify(fs.outputFile)
 
 const glob = async (patterns, opts) => {
   patterns = Array.isArray(patterns) ? patterns : [patterns]
