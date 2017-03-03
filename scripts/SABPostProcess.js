@@ -44,6 +44,7 @@ const move = (() => {
 const read = binary(pify(fs.readFile))
 const remove = unary(pify(fs.remove))
 const stat = unary(pify(fs.stat))
+const write = binary(pify(fs.outputFile))
 
 const FFMPEG_PATH = '/opt/bin/ffmpeg'
 const FFPROBE_PATH = '/opt/bin/ffprobe'
