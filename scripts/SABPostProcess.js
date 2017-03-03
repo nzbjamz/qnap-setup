@@ -604,14 +604,16 @@ const cleanupFolder = async (inpath) => {
     const subs = await getSubsToRename(inpath)
     if (await renameVideos(inpath, outpath)) {
       const filepath = await delay(() => getNewestVideo(libpath), 1000 * 60 * 2.5)
-      const end = moment()
-      const start = moment(end).subtract(5, 'minutes')
-      const { mtime } = await stat(filepath)
-      if (moment(mtime).isBetween(start, end, null, '[]')) {
-        if (category === 'tv') {
-          await restoreSubs(filepath, subs)
+      if (filepath) {
+        const end = moment()
+        const start = moment(end).subtract(5, 'minutes')
+        const { mtime } = await stat(filepath)
+        if (moment(mtime).isBetween(start, end, null, '[]')) {
+          if (category === 'tv') {
+            await restoreSubs(filepath, subs)
+          }
+          await cleanupFolder(path.dirname(filepath))
         }
-        await cleanupFolder(path.dirname(filepath))
       }
     }
   }
