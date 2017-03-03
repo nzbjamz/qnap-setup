@@ -3,19 +3,16 @@
 
 const defaultsDeep = require('lodash/defaultsDeep')
 const execa = require('execa')
-const fs = require('fs-extra')
-const globby = require('globby')
 const imdb = require('imdb-search')
 const ini = require('ini')
 const isPathInside = require('path-is-inside')
 const moment = require('moment')
 const path = require('path')
-const pify = require('pify')
 const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
-
+const { glob, isFile, move, read, remove, stat, write } = require('./util.js')
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -27,24 +24,6 @@ const { argv } = require('yargs')
   .alias('imdb', 'imdbid')
   .alias('tmdb', 'tmdbid')
   .alias('tv', 'tvdbid')
-
-const isFile = async (p) => (await stat(p)).isFile()
-const binary = (func) => (a, b) => func(a, b)
-const unary = (func) => (a) => func(a)
-
-const move = (() => {
-  const _move = pify(fs.move)
-  return async (source, dest) => {
-    if (source !== dest && path.resolve(source) !== path.resolve(dest)) {
-      return _move(source, dest)
-    }
-  }
-})()
-
-const read = binary(pify(fs.readFile))
-const remove = unary(pify(fs.remove))
-const stat = unary(pify(fs.stat))
-const write = binary(pify(fs.outputFile))
 
 const FFMPEG_PATH = '/opt/bin/ffmpeg'
 const FFPROBE_PATH = '/opt/bin/ffprobe'
@@ -115,21 +94,6 @@ const ffprobe = async (filepath) => {
     const params = ['-loglevel', 'quiet', '-print_format', 'json', '-show_streams', filepath]
     const { stdout } = await execa(FFPROBE_PATH, params)
     return JSON.parse(stdout).streams
-  } catch (e) {}
-  return []
-}
-
-const glob = async (patterns, opts) => {
-  patterns = Array.isArray(patterns) ? patterns : [patterns]
-  const nodir = !patterns.some((p) => !p.startsWith('!') && p.endsWith('/'))
-  try {
-    return await globby(patterns, Object.assign({
-      'nocase': true,
-      'nodir': nodir,
-      'noext': true,
-      'realpath': true,
-      'strict': true
-    }, opts))
   } catch (e) {}
   return []
 }

@@ -1,21 +1,10 @@
 #!/usr/bin/env node
 'use strict'
 
-const fs = require('fs-extra')
-const globby = require('globby')
 const path = require('path')
-const pify = require('pify')
 const Subtitle = require('subtitle')
+const { glob, isFile, read, remove, stat, write } = require('./util.js')
 const { argv } = require('yargs')
-
-const isFile = async (p) => (await stat(p)).isFile()
-const binary = (func) => (a, b) => func(a, b)
-const unary = (func) => (a) => func(a)
-
-const read = binary(pify(fs.readFile))
-const remove = unary(pify(fs.remove))
-const stat = unary(pify(fs.stat))
-const write = binary(pify(fs.outputFile))
 
 const reAddress = /[-\w]+\.(?:com|org|net)\b/i
 const reContact = /[-\w]+\[[-\w]+\][-\w]+/
@@ -55,21 +44,6 @@ const reProviders = RegExp('\\b(?:' + [
 ')\\b', 'i')
 
 /*----------------------------------------------------------------------------*/
-
-const glob = async (patterns, opts) => {
-  patterns = Array.isArray(patterns) ? patterns : [patterns]
-  const nodir = !patterns.some((p) => !p.startsWith('!') && p.endsWith('/'))
-  try {
-    return await globby(patterns, Object.assign({
-      'nocase': true,
-      'nodir': nodir,
-      'noext': true,
-      'realpath': true,
-      'strict': true
-    }, opts))
-  } catch (e) {}
-  return []
-}
 
 const isBogus = (text='') => (
   reAddress.test(text) || reContact.test(text) || reKeywords.test(text) || reProviders.test(text)
