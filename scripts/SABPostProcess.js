@@ -110,9 +110,12 @@ const ffprobe = async (filepath) => {
 }
 
 const glob = async (patterns, opts) => {
+  patterns = Array.isArray(patterns) ? patterns : [patterns]
+  const nodir = !patterns.some((p) => !p.startsWith('!') && p.endsWith('/'))
   try {
     return await globby(patterns, Object.assign({
       'nocase': true,
+      'nodir': nodir,
       'noext': true,
       'realpath': true,
       'strict': true
@@ -208,18 +211,16 @@ const getImdbId = async (inpath) => {
   }
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nodir': true })
+    : await glob(GLOB_VIDEO, { 'cwd': inpath })
 
   if (filepaths.length) {
     const filepath = filepaths[0]
     const basename = path.basename(filepath, path.extname(filepath))
     const parts = /^(.+?)(?:, *(the|an?)\b)?(?: *\((\d+)\))?(?: *cd(\d+))?$/i.exec(basename)
-
     const the = parts[2]
     const title = (the ? the + ' ' : '') + parts[1]
     const type = getCategory(filepath) === 'movies' ? 'movie' : 'episode'
     const year = parts[3]
-
     try {
       return (await imdb.search(title, year, type))[0].imdb
     } catch (e) {}
@@ -318,7 +319,7 @@ const transcode = async (filepath, args, opts) => {
 const getVideosToTranscode = async (inpath, force) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath, 'nodir': true })
+    : await glob(GLOB_VIDEO, { 'cwd': inpath })
 
   const result = []
   for (const filepath of filepaths) {
@@ -371,7 +372,7 @@ const transcodeVideos = async (files) => {
 const removeEmbeddedSubsFromVideos = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath, 'nodir': true })
+    : await glob(GLOB_MP4, { 'cwd': inpath })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
@@ -417,7 +418,7 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
 const getVideosToTag = async (inpath, force) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath, 'nodir': true })
+    : await glob(GLOB_MP4, { 'cwd': inpath })
 
   const result = []
   for (const filepath of filepaths) {
@@ -467,7 +468,7 @@ const tagVideos = async (files) => {
 
 const getSubsToRename = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
-  const filepaths = await glob(GLOB_SRT, { 'cwd': cwd, 'nodir': true })
+  const filepaths = await glob(GLOB_SRT, { 'cwd': cwd })
   const result = []
   for (const filepath of filepaths) {
     const captions = new Subtitle
@@ -532,16 +533,13 @@ const restoreSubs = async (inpath, subs) => {
   const dirname = path.dirname(inpath)
   for (const { filepath, captions } of subs) {
     const ext = /\.en\.(?:\w+\.)*?srt$/.exec(path.basename(filepath))[0]
+    console.log('writing subs', path.join(dirname, basename + ext))
     await write(path.join(dirname, basename + ext), captions.stringify())
   }
 }
 
 const cleanupFolder = async (inpath) => {
-  const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], {
-    'cwd': inpath,
-    'nodir': true
-  })
-
+  const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], { 'cwd': inpath })
   for (let filepath of filepaths) {
     const basename = path.basename(filepath)
     const dirname = path.dirname(filepath)

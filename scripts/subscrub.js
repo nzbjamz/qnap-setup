@@ -57,9 +57,12 @@ const reProviders = RegExp('\\b(?:' + [
 /*----------------------------------------------------------------------------*/
 
 const glob = async (patterns, opts) => {
+  patterns = Array.isArray(patterns) ? patterns : [patterns]
+  const nodir = !patterns.some((p) => !p.startsWith('!') && p.endsWith('/'))
   try {
     return await globby(patterns, Object.assign({
       'nocase': true,
+      'nodir': nodir,
       'noext': true,
       'realpath': true,
       'strict': true
@@ -77,7 +80,7 @@ const isBogus = (text='') => (
 const subscrub = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob('**/*.srt', { 'cwd': inpath, 'nodir': true })
+    : await glob('**/*.srt', { 'cwd': inpath })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
