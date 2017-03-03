@@ -33,9 +33,9 @@ const glob = async (patterns, opts) => {
 
 const move = (() => {
   const _move = pify(fs.move)
-  return async (source, dest) => {
+  return async (source, dest, opts={}) => {
     if (source !== dest && path.resolve(source) !== path.resolve(dest)) {
-      return _move(source, dest)
+      return _move(source, dest, opts)
     }
   }
 })()

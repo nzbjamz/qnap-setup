@@ -511,7 +511,7 @@ const cleanupFolder = async (inpath) => {
         // Add "en" language code to subtitle name.
         parts.splice(1, 0, 'en')
         const repath = path.join(dirname, parts.join('.'))
-        await move(filepath, repath)
+        await move(filepath, repath, { 'overwrite': true })
         filepath = repath
       }
       await subscrub(filepath)
