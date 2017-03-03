@@ -285,10 +285,7 @@ const transcode = async (filepath, args, opts) => {
   }
   const temppath = await tempWrite(ini.stringify(config))
   const params = ['--auto', '--convertmp4', '--config', temppath, '--input', filepath, ...args]
-  const spawned = execa(MANUAL_SCRIPT_PATH, params, {
-    'reject': true
-  })
-
+  const spawned = execa(MANUAL_SCRIPT_PATH, params, { 'reject': true })
   const process = Object.assign(new Promise((resolve) => {
     spawned
       .then((result) => {
@@ -519,7 +516,6 @@ const renameVideos = async (inpath, outpath) => {
 
 const getNewestVideo = async (inpath) => {
   const filepaths = await glob(GLOB_MP4, { 'cwd': inpath, 'nosort': true })
-
   const objs = []
   for (const filepath of filepaths) {
     objs.push({ 'value': filepath, 'time': (await stat(filepath)).mtime })
