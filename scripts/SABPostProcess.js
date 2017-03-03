@@ -32,6 +32,15 @@ const isFile = async (p) => (await stat(p)).isFile()
 const binary = (func) => (a, b) => func(a, b)
 const unary = (func) => (a) => func(a)
 
+const move = (() => {
+  const _move = pify(fs.move)
+  return async (source, dest) => {
+    if (source !== dest && path.resolve(source) !== path.resolve(dest)) {
+      return _move(source, dest)
+    }
+  }
+})()
+
 const read = binary(pify(fs.readFile))
 const remove = unary(pify(fs.remove))
 const stat = unary(pify(fs.stat))
@@ -122,13 +131,6 @@ const glob = async (patterns, opts) => {
     }, opts))
   } catch (e) {}
   return []
-}
-
-const move = async (inpath, outpath) => {
-  // Avoid buggy `fs.move`.
-  outpath = path.resolve(outpath)
-  await fs.ensureDir(path.dirname(outpath))
-  return execQuiet('mv', [path.resolve(inpath), outpath])
 }
 
 /*----------------------------------------------------------------------------*/
