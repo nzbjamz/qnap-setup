@@ -609,6 +609,8 @@ const cleanupFolder = async (inpath) => {
           }
           await cleanupFolder(path.dirname(filepath))
         }
+      } else {
+        console.log('Unable to cleanup renamed files.')
       }
     }
   }
