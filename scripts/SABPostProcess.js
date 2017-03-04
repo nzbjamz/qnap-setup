@@ -42,6 +42,8 @@ const GLOB_MP4 = '**/*.{mp4,m4v}'
 const GLOB_SRT = '**/*.srt'
 const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
 
+const reSrtEnLang = /\.en\.(?:\w+\.)*?srt$/i
+
 const langMap = new Map(Object.entries({
   'eng': 'en',
   'und': 'en'
@@ -503,7 +505,7 @@ const restoreSubs = async (inpath, subs) => {
   const basename = path.basename(inpath, path.extname(inpath))
   const dirname = path.dirname(inpath)
   for (const { filepath, captions } of subs) {
-    const ext = /\.en\.(?:\w+\.)*?srt$/.exec(path.basename(filepath))[0]
+    const ext = reSrtEnLang.exec(path.basename(filepath))[0]
     await write(path.join(dirname, basename + ext), captions.stringify())
   }
 }
@@ -515,11 +517,9 @@ const cleanupFolder = async (inpath) => {
     const dirname = path.dirname(filepath)
     const ext = path.extname(filepath).toLowerCase()
     if (ext === '.srt') {
-      const parts = basename.split('.')
-      if (parts[1] !== 'en') {
+      if (!reSrtEnLang.test(basename)) {
         // Add "en" language code to subtitle name.
-        parts.splice(1, 0, 'en')
-        const repath = path.join(dirname, parts.join('.'))
+        const repath = basename.replace(/\.srt$/i, '.en.srt')
         await move(filepath, repath, { 'overwrite': true })
         filepath = repath
       }
