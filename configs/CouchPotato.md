@@ -15,7 +15,7 @@
 ### Basics
 
   * First Search: `usenet`
-  * Usenet Retention: `<INDEXER_RETENTION>`
+  * Usenet Retention: `9999`
   * Add your indexer
 
   |Host                |Api Key             |Extra Score |Custom Tag |

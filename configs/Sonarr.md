@@ -49,7 +49,7 @@
 
 ### Options
 
-  * Set your indexer retention
+  * Retention: `0`
 
 ## Download Client
 
