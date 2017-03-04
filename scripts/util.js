@@ -34,7 +34,14 @@ const move = (() => {
     source = path.resolve(source)
     dest = path.resolve(dest)
     if (source !== dest) {
-      return _move(source, dest, opts)
+      try {
+        await _move(source, dest, opts)
+      } catch (e) {
+        if (e.code !== 'ENOENT') {
+          throw e
+        }
+        await remove(source)
+      }
     }
   }
 })()
