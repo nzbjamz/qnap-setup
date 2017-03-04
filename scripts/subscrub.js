@@ -45,9 +45,13 @@ const reProviders = RegExp('\\b(?:' + [
 
 /*----------------------------------------------------------------------------*/
 
-const isBogus = (text='') => (
-  reAddress.test(text) || reContact.test(text) || reKeywords.test(text) || reProviders.test(text)
-)
+const isBogus = (sub) => {
+  if (sub == null) {
+    return false
+  }
+  const { text } = sub
+  return reAddress.test(text) || reContact.test(text) || reKeywords.test(text) || reProviders.test(text)
+}
 
 const subscrub = async (inpath) => {
   inpath = path.resolve(inpath)
@@ -68,28 +72,37 @@ const subscrub = async (inpath) => {
     let { _subtitles } = captions
     const { length } = _subtitles
 
-    // Remove empty entries.
-    _subtitles = _subtitles.filter(({ text }) => text)
+    // Remove empty captions.
+    const empties = []
+    _subtitles = _subtitles.filter((sub) => sub.text || void empties.push(sub))
 
-    const first = _subtitles[0]
-    if (first && isBogus(first.text)) {
-      _subtitles.shift()
+    // Remove bogus captions.
+    const removed = []
+    if (isBogus(_subtitles[0])) {
+      removed.push(_subtitles.shift())
     }
-    const last = _subtitles[_subtitles.length - 1]
-    if (last && isBogus(last.text)) {
-      _subtitles.pop()
+    if (isBogus(_subtitles[_subtitles.length - 1])) {
+      removed.push(_subtitles.pop())
     }
-    if (!_subtitles.length) {
-      console.log(`Removing empty ${ basename }.`)
-      await remove(filepath)
-    }
-    else if (_subtitles.length !== length) {
-      // Reindex entries.
-      _subtitles.forEach((sub, index) => sub.index = index + 1)
-      captions._subtitles = _subtitles
-
+    // Commit changes.
+    if (_subtitles.length !== length) {
       console.log(`Scrubbing ${ basename }.`)
-      await write(filepath, captions.stringify())
+      if (empties.length) {
+        console.log('Removing empty captions.')
+      }
+      removed.forEach(({ text }) => {
+        text = text.replace(/\n/g, ' ')
+        console.log(`Removing caption:\n${ text }`)
+      })
+      if (_subtitles.length) {
+        // Reindex captions.
+        _subtitles.forEach((sub, index) => sub.index = index + 1)
+        captions._subtitles = _subtitles
+        await write(filepath, captions.stringify())
+      } else {
+        console.log(`Removing empty ${ basename }.`)
+        await remove(filepath)
+      }
     }
   }
 }
