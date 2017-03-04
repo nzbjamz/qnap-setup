@@ -159,6 +159,7 @@ const getCategory = (inpath) => {
   if (category) {
     return category
   }
+  inpath = path.resolve(inpath)
   const lowerpath = inpath.toLowerCase()
   if (/\b(?:season \d+|s\d+e\d+)\b/.test(lowerpath) ||
       lowerpath.split(path.sep).includes('tv')) {
@@ -172,6 +173,7 @@ const getImdbId = async (inpath) => {
   if (imdbid) {
     return imdbid
   }
+  inpath = path.resolve(inpath)
   const extracted = /\btt\d{7,}\b/.exec(inpath)
   if (extracted) {
     return extracted[0]
@@ -281,6 +283,7 @@ const transcode = async (filepath, args, opts) => {
 /*----------------------------------------------------------------------------*/
 
 const getVideosToTranscode = async (inpath, force) => {
+  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
     : await glob(GLOB_VIDEO, { 'cwd': inpath })
@@ -334,6 +337,7 @@ const transcodeVideos = async (files) => {
 }
 
 const removeEmbeddedSubsFromVideos = async (inpath) => {
+  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
     : await glob(GLOB_MP4, { 'cwd': inpath })
@@ -380,6 +384,7 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
 /*----------------------------------------------------------------------------*/
 
 const getVideosToTag = async (inpath, force) => {
+  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
     : await glob(GLOB_MP4, { 'cwd': inpath })
@@ -431,8 +436,9 @@ const tagVideos = async (files) => {
 /*----------------------------------------------------------------------------*/
 
 const getSubsToRename = async (inpath) => {
+  inpath = path.resolve(inpath)
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
-  const filepaths = await glob(GLOB_SRT, { 'cwd': cwd })
+  const filepaths = await glob(GLOB_SRT, { cwd })
   const result = []
   for (const filepath of filepaths) {
     const captions = new Subtitle
@@ -445,8 +451,12 @@ const getSubsToRename = async (inpath) => {
 }
 
 const renameVideos = async (inpath, outpath) => {
+  inpath = path.resolve(inpath)
+  outpath = path.resolve(outpath)
+  await move(inpath, outpath)
+
   const args = argv._.slice()
-  args[0] = inpath
+  args[0] = outpath
   if (MANUAL_RUN) {
     args.length = 7
     // The name of the job name without path or file extension.
@@ -462,8 +472,6 @@ const renameVideos = async (inpath, outpath) => {
     // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
     args[6] = 0
   }
-  await move(inpath, outpath)
-
   try {
     // Since `SABNZBD` is configured with `convert = False`
     // invoking SABPostProcess.py will simply start a renamer scan.
@@ -491,6 +499,7 @@ const getNewestVideo = async (inpath) => {
 }
 
 const restoreSubs = async (inpath, subs) => {
+  inpath = path.resolve(inpath)
   const basename = path.basename(inpath, path.extname(inpath))
   const dirname = path.dirname(inpath)
   for (const { filepath, captions } of subs) {

@@ -50,6 +50,7 @@ const isBogus = (text='') => (
 )
 
 const subscrub = async (inpath) => {
+  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
     : await glob('**/*.srt', { 'cwd': inpath })
