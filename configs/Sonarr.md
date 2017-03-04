@@ -15,6 +15,26 @@
   * Season Folder Format: `Season {season}`
   * Multi-Episode Style: `Range`
 
+### Profiles
+
+  * Edit the profile for "Any"
+    * Cutoff: `SDTV`
+    * Qualities:
+      * ✗ Bluray-2160p
+      * ✗ WEBDL-2160p
+      * ✗ HDTV-2160p
+      * ✓ Bluray-1080p
+      * ✓ WEBDL-1080p
+      * ✓ Bluray-720p
+      * ✓ WEBDL-720p
+      * ✗ Raw-HD
+      * ✓ HDTV-1080p
+      * ✓ HDTV-720p
+      * ✓ DVD
+      * ✓ WEBDL-480p
+      * ✓ SDTV
+      * ✓ Unknown
+
 ### Folders
 
   * Create empty series folders: `No`
