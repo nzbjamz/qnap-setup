@@ -44,6 +44,11 @@ const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
 
 const reSrtEnLang = /\.en\.(?:\w+\.)*?srt$/i
 
+const dispositionMap = new Map(Object.entries({
+  'forced': 'forced',
+  'hearing_impaired': 'hi'
+}))
+
 const langMap = new Map(Object.entries({
   'eng': 'en',
   'und': 'en'
@@ -219,7 +224,12 @@ const extractSubs = async (file, sublang) => {
   const maps = subs.reduce((maps, sub) => {
     const { disposition, lang } = sub
     if (disposition.default || sublang == null || lang === sublang) {
-      const labels = Object.keys(disposition).filter((key) => key !== 'default' && disposition[key])
+      const labels = Object
+        .keys(disposition)
+        .filter((key) => disposition[key])
+        .map((key) => dispositionMap.get(key))
+        .filter((key) => key)
+
       const subname = [basename, lang, ...labels, 'srt'].join('.')
       if (!seen.has(subname)) {
         const subpath = path.join(dirname, subname)
