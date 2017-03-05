@@ -2,6 +2,7 @@
 
 const fs = require('fs-extra')
 const globby = require('globby')
+const moment = require('moment')
 const path = require('path')
 const pify = require('pify')
 
@@ -46,10 +47,28 @@ const move = (() => {
   }
 })()
 
+const poll = (func, opts={}) => {
+  let { frequency=16, limit=1000*60 } = opts
+  limit = moment().add(limit)
+  return new Promise((resolve) => {
+    const poller = () => {
+      const result = func()
+      const timedOut = moment().isAfter(limit)
+      if (result || timedOut) {
+        resolve(!timedOut)
+      } else {
+        setTimeout(poller, frequency)
+      }
+    }
+    poller()
+  })
+}
+
 module.exports = {
   glob,
   isFile,
   move,
+  poll,
   read,
   remove,
   stat,
