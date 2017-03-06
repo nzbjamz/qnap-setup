@@ -178,9 +178,9 @@ const getImdbId = async (inpath) => {
     return imdbid
   }
   inpath = path.resolve(inpath)
-  const extracted = /\btt\d{7,}\b/.exec(inpath)
-  if (extracted) {
-    return extracted[0]
+  const { 0:pathid } = /\btt\d{7,}\b/.exec(inpath) || ['']
+  if (pathid) {
+    return pathid
   }
   const filepaths = await isFile(inpath)
     ? [inpath]
@@ -188,7 +188,7 @@ const getImdbId = async (inpath) => {
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath, path.extname(filepath))
-    const parts = /^(.+?)(?:, *(the|an?)\b)?(?: *\((\d+)\))?(?: *cd(\d+))?$/i.exec(basename)
+    const parts = /^(.+?)(?:, *(the|an?)\b)?(?: *\((\d+)\))?(?: *cd(\d+))?$/i.exec(basename) || [, basename]
     const the = parts[2]
     const title = (the ? the + ' ' : '') + parts[1]
     const type = getCategory(filepath) === 'movies' ? 'movie' : 'episode'
@@ -551,7 +551,7 @@ const restoreSubs = async (vidpaths, subs) => {
     const subgroup = subgroups[subnames[index]]
     if (subgroup) {
       for (const { filepath, captions} of subgroup) {
-        const ext = (reSrtEnLang.exec(filepath) || ['.srt'])[0]
+        const { 0:ext } = reSrtEnLang.exec(filepath) || ['.srt']
         await write(path.join(dirname, basename + ext), captions.stringify())
       }
     }
