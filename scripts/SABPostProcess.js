@@ -185,7 +185,7 @@ const getImdbId = async (inpath) => {
   }
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath })
+    : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
   if (filepaths.length) {
     const filepath = filepaths[0]
@@ -313,7 +313,7 @@ const getVideosToTranscode = async (inpath, force) => {
   inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_VIDEO, { 'cwd': inpath })
+    : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
   const result = []
   for (const filepath of filepaths) {
@@ -367,7 +367,7 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
   inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath })
+    : await glob([GLOB_MP4], { 'cwd': inpath })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
@@ -413,7 +413,7 @@ const getVideosToTag = async (inpath, force) => {
   inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob(GLOB_MP4, { 'cwd': inpath })
+    : await glob([GLOB_MP4], { 'cwd': inpath })
 
   const result = []
   for (const filepath of filepaths) {
@@ -464,7 +464,7 @@ const tagVideos = async (files) => {
 const getSubsToRename = async (inpath) => {
   inpath = path.resolve(inpath)
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
-  const filepaths = await glob(GLOB_SRT, { cwd })
+  const filepaths = await glob([GLOB_SRT], { cwd })
   const result = []
   for (const filepath of filepaths) {
     const captions = new Subtitle
@@ -514,7 +514,7 @@ const renameVideos = async (inpath, outpath) => {
 
 const getNewestVideos = async (inpath, fromTime) => {
   const result = []
-  const filepaths = await glob(GLOB_MP4, { 'cwd': inpath })
+  const filepaths = await glob([GLOB_MP4], { 'cwd': inpath })
   for (const filepath of filepaths) {
     const { mtime } = await stat(filepath)
     if (!moment(mtime).isBefore(fromTime)) {

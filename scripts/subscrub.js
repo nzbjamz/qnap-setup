@@ -57,7 +57,7 @@ const subscrub = async (inpath) => {
   inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
     ? [inpath]
-    : await glob('**/*.srt', { 'cwd': inpath })
+    : await glob(['**/*.srt'], { 'cwd': inpath })
 
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
