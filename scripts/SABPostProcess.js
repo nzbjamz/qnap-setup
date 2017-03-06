@@ -578,7 +578,7 @@ const cleanupFolder = async (inpath) => {
       continue
     }
     console.log(`Trashing ${ basename }.`)
-    await trash(filepath)
+    await trash([filepath])
   }
 }
 
