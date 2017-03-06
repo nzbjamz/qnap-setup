@@ -378,7 +378,6 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
       maps.push('-map', '0:a')
     }
     await move(filepath, bakpath)
-
     try {
       const args = ['-codec', 'copy', '-sn', '-map_chapters', '-1', '-map', '0:v', ...maps, filepath]
       await ffmpeg(bakpath, args)
