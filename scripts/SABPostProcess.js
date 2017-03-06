@@ -568,8 +568,12 @@ const cleanupFolder = async (inpath) => {
     if (ext === '.srt' && reSrtEnLang.test(basename)) {
       continue
     }
-    console.log(`Trashing ${ basename }.`)
-    await trash([filepath])
+    try {
+      console.log(`Trashing ${ basename }.`)
+      await trash([filepath])
+    } catch (e) {
+      console.log(`Failed to trash ${ basename }.`)
+    }
   }
 }
 
