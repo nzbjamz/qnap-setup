@@ -13,6 +13,7 @@ const isFile = async (p) => (await stat(p)).isFile()
 const read = pify(fs.readFile)
 const remove = pify(fs.remove)
 const stat = pify(fs.stat)
+const utimes = pify(fs.utimes)
 const write = pify(fs.outputFile)
 
 const glob = async (patterns, opts) => {
@@ -79,5 +80,6 @@ module.exports = {
   read,
   remove,
   stat,
+  utimes,
   write
 }
