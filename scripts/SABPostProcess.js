@@ -624,7 +624,7 @@ const cleanupFolder = async (inpath) => {
       console.log('filepaths', filepaths)
       if (filepaths.length) {
         await restoreSubs(filepaths, subs)
-        await cleanupFolder(path.dirname(filepaths[0]))
+        await cleanupFolder(filepaths[0])
       } else {
         console.log('Unable to cleanup renamed files.')
       }
