@@ -14,4 +14,4 @@ EOF
 echo 'Installing core opkg packages.'
 
 opkg update
-opkg install coreutils-ls coreutils-rm git git-http mediainfo tar
+opkg install coreutils-ls coreutils-rm coreutils-sort git git-http mediainfo tar
