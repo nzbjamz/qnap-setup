@@ -164,8 +164,7 @@ const getCategory = (inpath) => {
   if (category) {
     return category
   }
-  inpath = path.resolve(inpath)
-  const lowerpath = inpath.toLowerCase()
+  const lowerpath = path.resolve(inpath).toLowerCase()
   if (/\b(?:season \d+|s\d+e\d+)\b/.test(lowerpath) ||
       lowerpath.split(path.sep).includes('tv')) {
     return 'tv'
@@ -187,8 +186,7 @@ const getImdbId = async (inpath) => {
     ? [inpath]
     : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
-  if (filepaths.length) {
-    const filepath = filepaths[0]
+  for (const filepath of filepaths) {
     const basename = path.basename(filepath, path.extname(filepath))
     const parts = /^(.+?)(?:, *(the|an?)\b)?(?: *\((\d+)\))?(?: *cd(\d+))?$/i.exec(basename)
     const the = parts[2]
@@ -310,9 +308,8 @@ const transcode = async (filepath, args, opts) => {
 /*----------------------------------------------------------------------------*/
 
 const getVideosToTranscode = async (inpath, force) => {
-  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
-    ? [inpath]
+    ? [path.resolve(inpath)]
     : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
   const result = []
@@ -364,9 +361,8 @@ const transcodeVideos = async (files) => {
 }
 
 const removeEmbeddedSubsFromVideos = async (inpath) => {
-  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
-    ? [inpath]
+    ? [path.resolve(inpath)]
     : await glob([GLOB_MP4], { 'cwd': inpath })
 
   for (const filepath of filepaths) {
@@ -410,9 +406,8 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
 /*----------------------------------------------------------------------------*/
 
 const getVideosToTag = async (inpath, force) => {
-  inpath = path.resolve(inpath)
   const filepaths = await isFile(inpath)
-    ? [inpath]
+    ? [path.resolve(inpath)]
     : await glob([GLOB_MP4], { 'cwd': inpath })
 
   const result = []
@@ -462,7 +457,6 @@ const tagVideos = async (files) => {
 /*----------------------------------------------------------------------------*/
 
 const getSubsToRename = async (inpath) => {
-  inpath = path.resolve(inpath)
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_SRT], { cwd })
   const result = []
@@ -528,8 +522,9 @@ const getMtime = async (inpath) => {
 }
 
 const getNewestVideos = async (inpath, fromTime) => {
+  const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
+  const filepaths = await glob([GLOB_MP4], { cwd })
   const result = []
-  const filepaths = await glob([GLOB_MP4], { 'cwd': inpath })
   for (const filepath of filepaths) {
     const { mtime } = await stat(filepath)
     if (!moment(mtime).isBefore(fromTime)) {
@@ -569,7 +564,8 @@ const restoreSubs = async (vidpaths, subs) => {
 }
 
 const cleanupFolder = async (inpath) => {
-  const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], { 'cwd': inpath })
+  const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
+  const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], { cwd })
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
     const dirname = path.dirname(filepath)
