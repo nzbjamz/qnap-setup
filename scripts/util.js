@@ -58,8 +58,8 @@ const poll = (func, opts={}) => {
   let { frequency=16, limit=1000*60 } = opts
   limit = moment().add(limit)
   return new Promise((resolve) => {
-    const poller = () => {
-      const result = func()
+    const poller = async () => {
+      const result = await func()
       const timedOut = moment().isAfter(limit)
       if (result || timedOut) {
         resolve(!timedOut)
