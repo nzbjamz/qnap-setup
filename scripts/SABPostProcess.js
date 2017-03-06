@@ -9,6 +9,7 @@ const isPathInside = require('path-is-inside')
 const moment = require('moment')
 const naturalCompare = require('string-natural-compare')
 const path = require('path')
+const stream = require('stream')
 const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
@@ -250,6 +251,16 @@ const extractSubs = async (file, sublang) => {
 }
 
 const transcode = async (filepath, args, opts) => {
+  const hasFallback = () => (
+    config.MP4.ffmpeg !== FFMPEG_PATH
+  )
+
+  const wrap = (func) => function(...args) {
+    if (!hasFallback()) {
+      func.apply(this, args)
+    }
+  }
+
   const streams = await ffprobe(filepath)
   const auds = getAudioStreams(streams)
   const flac = firstOfCodec(auds, 'flac')
@@ -261,7 +272,7 @@ const transcode = async (filepath, args, opts) => {
   const temppath = await tempWrite(ini.stringify(config))
   const params = ['--auto', '--convertmp4', '--config', temppath, '--input', filepath, ...args]
   const spawned = execa(MANUAL_SCRIPT_PATH, params, { 'reject': true })
-  const process = Object.assign(new Promise((resolve) => {
+  const proxy = Object.assign(new Promise((resolve) => {
     spawned
       .then((result) => {
         const errmsg = 'Error converting file, FFMPEG error.'
@@ -274,19 +285,26 @@ const transcode = async (filepath, args, opts) => {
         resolve(result)
       })
       .catch(async (e) => {
-        if (config.MP4.ffmpeg === FFMPEG_PATH) {
+        if (!hasFallback()) {
           throw e
         }
+        // Fallback to non-VAAPI accelerated ffmpeg.
         config.MP4.ffmpeg = FFMPEG_PATH
         config.MP4['video-codec'] = 'h264,x264'
         const { process: respawned } = await transcode(filepath, args, config)
-        respawned.stdout.pipe(spawned.stdout)
-        respawned.stderr.pipe(spawned.stderr)
+        respawned.stdout.pipe(proxy.stdout)
+        respawned.stderr.pipe(proxy.stderr)
         respawned.then(resolve)
       })
   }), spawned)
 
-  return { process }
+  ['stderr', 'stdout'].forEach((key) => {
+    proxy[key] = new stream.PassThrough
+    proxy[key].end = wrap(proxy[key].end)
+    spawned[key].pipe(proxy[key])
+  })
+
+  return { 'process': proxy }
 }
 
 /*----------------------------------------------------------------------------*/
