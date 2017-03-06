@@ -14,7 +14,7 @@ const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
-const { glob, isFile, move, poll, read, remove, stat, write } = require('./util.js')
+const { glob, isFile, move, poll, read, remove, stat, utimes, write } = require('./util.js')
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -470,6 +470,16 @@ const getSubsToRename = async (inpath) => {
   return result
 }
 
+const touchFiles = async (inpath, now=Date.now()) => {
+  const filepaths = await isFile(inpath)
+    ? [path.resolve(inpath)]
+    : await glob([GLOB_MP4, GLOB_SRT], { 'cwd': inpath })
+
+  for (const filepath of filepaths) {
+    await utimes(filepath, now, now)
+  }
+}
+
 const renameVideos = async (inpath, outpath) => {
   inpath = path.resolve(inpath)
   outpath = path.resolve(outpath)
@@ -504,21 +514,6 @@ const renameVideos = async (inpath, outpath) => {
     return false
   }
   return true
-}
-
-const getMtime = async (inpath) => {
-  inpath = path.resolve(inpath)
-  const filepaths = await isFile(inpath)
-    ? [inpath]
-    : await glob([GLOB_MP4], { 'cwd': inpath })
-
-  const times = []
-  for (const filepath of filepaths) {
-    const { mtime } = await stat(filepath)
-    times.push(mtime)
-  }
-  times.sort((a, b) => b - a)
-  return times[0] || new Date(NaN)
 }
 
 const getNewestVideos = async (inpath, fromTime) => {
@@ -607,16 +602,18 @@ const cleanupFolder = async (inpath) => {
     console.log('Adding metadata.')
     await tagVideos(vidsToTag)
   }
+  const fromTime = Date.now()
+  await touchFiles(inpath, fromTime)
+
   const category = getCategory(inpath)
   const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
   if (!isPathInside(inpath, libpath)) {
     const foldername = path.basename(await isFile(inpath) ? path.dirname(inpath) : inpath)
     const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
     const outpath = path.join(WATCH_PATH, category, foldername)
+    const subs = await getSubsToRename(inpath)
 
     console.log(`Starting ${ manager } renamer scan.`)
-    const subs = await getSubsToRename(inpath)
-    const fromTime = await getMtime(inpath)
     if (await renameVideos(inpath, outpath)) {
       let filepaths
       await poll(async () => {
