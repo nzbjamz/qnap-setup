@@ -551,7 +551,6 @@ const restoreSubs = async (vidpaths, subs) => {
   }
   const subnames = Object.keys(subgroups).sort(naturalCompare)
   vidpaths.sort(naturalCompare)
-  console.log('subnames', subnames)
 
   let index = -1
   const { length } = vidpaths
