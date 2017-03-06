@@ -276,10 +276,10 @@ const transcode = async (filepath, args, opts) => {
   const proxy = Object.assign(new Promise((resolve) => {
     spawned
       .then((result) => {
-        const errmsg = 'Error converting file, FFMPEG error.'
+        const errMsg = 'Error converting file, FFMPEG error.'
         const { stdout } = result
-        if (stdout.includes(errmsg)) {
-          throw new Error(errmsg)
+        if (stdout.includes(errMsg)) {
+          throw new Error(errMsg)
         }
         // Remove progress indicator.
         result.stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
