@@ -562,7 +562,7 @@ const restoreSubs = async (vidpaths, subs) => {
     const subgroup = subgroups[subnames[index]]
     if (subgroup) {
       for (const { filepath, captions} of subgroup) {
-        const ext = reSrtEnLang.exec(filepath)[0]
+        const ext = (reSrtEnLang.exec(filepath) || ['.srt'])[0]
         await write(path.join(dirname, basename + ext), captions.stringify())
       }
     }
