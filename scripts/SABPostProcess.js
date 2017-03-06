@@ -261,6 +261,7 @@ const transcode = async (filepath, args, opts) => {
     }
   }
 
+  const stdios = ['stderr', 'stdout']
   const streams = await ffprobe(filepath)
   const auds = getAudioStreams(streams)
   const flac = firstOfCodec(auds, 'flac')
@@ -292,13 +293,12 @@ const transcode = async (filepath, args, opts) => {
         config.MP4.ffmpeg = FFMPEG_PATH
         config.MP4['video-codec'] = 'h264,x264'
         const { process: respawned } = await transcode(filepath, args, config)
-        respawned.stdout.pipe(proxy.stdout)
-        respawned.stderr.pipe(proxy.stderr)
+        stdios.forEach((key) => respawned[key].pipe(proxy[key]))
         respawned.then(resolve)
       })
   }), spawned)
 
-  ['stderr', 'stdout'].forEach((key) => {
+  stdios.forEach((key) => {
     proxy[key] = new stream.PassThrough
     proxy[key].end = wrap(proxy[key].end)
     spawned[key].pipe(proxy[key])
