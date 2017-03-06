@@ -512,6 +512,21 @@ const renameVideos = async (inpath, outpath) => {
   return true
 }
 
+const getMtime = async (inpath) => {
+  inpath = path.resolve(inpath)
+  const filepaths = await isFile(inpath)
+    ? [inpath]
+    : await glob([GLOB_MP4], { 'cwd': inpath })
+
+  const times = []
+  for (const filepath of filepaths) {
+    const { mtime } = await stat(filepath)
+    times.push(mtime)
+  }
+  times.sort((a, b) => b - a)
+  return times[0] || new Date(NaN)
+}
+
 const getNewestVideos = async (inpath, fromTime) => {
   const result = []
   const filepaths = await glob([GLOB_MP4], { 'cwd': inpath })
@@ -606,13 +621,13 @@ const cleanupFolder = async (inpath) => {
 
     console.log(`Starting ${ manager } renamer scan.`)
     const subs = await getSubsToRename(inpath)
-    const fromTime = Date.now()
+    const fromTime = await getMtime(inpath)
     if (await renameVideos(inpath, outpath)) {
       let filepaths
-      await poll(() => {
-        filepaths = getNewestVideos(libpath, fromTime)
+      await poll(async () => {
+        filepaths = await getNewestVideos(libpath, fromTime)
         return filepaths.length
-      }, { 'frequency': 200, 'limit': 1000 * 60 * 2.5 })
+      }, { 'frequency': 2000, 'limit': 1000 * 60 * 2.5 })
 
       console.log('filepaths', filepaths)
       if (filepaths.length) {
