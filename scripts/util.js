@@ -31,7 +31,7 @@ const glob = async (patterns, opts) => {
   opts.nosort = true
   try {
     const result = await globby(patterns, opts)
-    return nosort ? result : result.sort(nocase ? naturalCompare.caseInsensitive : naturalCompare)
+    return nosort ? result : result.sort(nocase ? naturalCompare.i : naturalCompare)
   } catch (e) {}
   return []
 }
