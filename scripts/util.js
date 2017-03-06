@@ -3,6 +3,7 @@
 const fs = require('fs-extra')
 const globby = require('globby')
 const moment = require('moment')
+const naturalCompare = require('string-natural-compare')
 const path = require('path')
 const pify = require('pify')
 
@@ -17,14 +18,20 @@ const write = pify(fs.outputFile)
 const glob = async (patterns, opts) => {
   patterns = Array.isArray(patterns) ? patterns : [patterns]
   const nodir = !patterns.some((p) => !p.startsWith('!') && p.endsWith('/'))
+
+  opts = Object.assign({
+    'nocase': true,
+    'nodir': nodir,
+    'noext': true,
+    'realpath': true,
+    'strict': true
+  }, opts)
+
+  const { nocase, nosort } = opts
+  opts.nosort = true
   try {
-    return await globby(patterns, Object.assign({
-      'nocase': true,
-      'nodir': nodir,
-      'noext': true,
-      'realpath': true,
-      'strict': true
-    }, opts))
+    const result = await globby(patterns, opts)
+    return nosort ? result : result.sort(nocase ? naturalCompare.caseInsensitive : naturalCompare)
   } catch (e) {}
   return []
 }
