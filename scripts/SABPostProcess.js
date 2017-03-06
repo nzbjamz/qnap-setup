@@ -201,11 +201,11 @@ const getImdbId = async (inpath) => {
 }
 
 const getTmdbid = async (inpath) => (
-  argv.tmdbid
+  argv.tmdbid || ''
 )
 
 const getTvdbid = async (inpath) => (
-  argv.tvdbid
+  argv.tvdbid || ''
 )
 
 /*----------------------------------------------------------------------------*/
