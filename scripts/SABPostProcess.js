@@ -7,12 +7,13 @@ const imdb = require('imdb-search')
 const ini = require('ini')
 const isPathInside = require('path-is-inside')
 const moment = require('moment')
+const naturalCompare = require('string-natural-compare')
 const path = require('path')
 const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
-const { glob, isFile, move, read, remove, stat, write } = require('./util.js')
+const { glob, isFile, move, poll, read, remove, stat, write } = require('./util.js')
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -109,10 +110,6 @@ const ffprobe = async (filepath) => {
 
 const cloneDeep = (object) => (
   JSON.parse(JSON.stringify(object))
-)
-
-const delay = (func, wait) => (
-  new Promise((resolve) => setTimeout(() => resolve(func()), wait))
 )
 
 const firstOfCodec = (streams, codec) => (
@@ -498,47 +495,59 @@ const renameVideos = async (inpath, outpath) => {
   return true
 }
 
-const getNewestVideo = async (inpath) => {
-  const filepaths = await glob(GLOB_MP4, { 'cwd': inpath, 'nosort': true })
-  const objs = []
+const getNewestVideos = async (inpath, fromTime) => {
+  const result = []
+  const filepaths = await glob(GLOB_MP4, { 'cwd': inpath })
   for (const filepath of filepaths) {
-    objs.push({ 'value': filepath, 'time': (await stat(filepath)).mtime })
+    const { mtime } = await stat(filepath)
+    if (!moment(mtime).isBefore(fromTime)) {
+      result.push(filepath)
+    }
   }
-  // Sort from newest to oldest.
-  return objs
-    .sort((a, b) => b.time - a.time)
-    .map(({ value }) => value)[0]
+  return result
 }
 
-const restoreSubs = async (inpath, subs) => {
-  inpath = path.resolve(inpath)
-  const basename = path.basename(inpath, path.extname(inpath))
-  const dirname = path.dirname(inpath)
-  for (const { filepath, captions } of subs) {
-    const ext = reSrtEnLang.exec(path.basename(filepath))[0]
-    await write(path.join(dirname, basename + ext), captions.stringify())
+const restoreSubs = async (vidpaths, subs) => {
+  const subgroups = {}
+  for (const sub of subs) {
+    const key = path.basename(sub.filepath).replace(reSrtEnLang, '')
+    if (subgroups[key]) {
+      subgroups[key].push(sub)
+    } else {
+      subgroups[key] = [sub]
+    }
+  }
+  const subnames = Object.keys(subgroups).sort(naturalCompare)
+  vidpaths.sort(naturalCompare)
+  console.log('subnames', subnames)
+
+  let index = -1
+  const { length } = vidpaths
+  while (++index < length) {
+    const vidpath = path.resolve(vidpaths[index])
+    const basename = path.basename(vidpath, path.extname(vidpath))
+    const dirname = path.dirname(vidpath)
+    const subgroup = subgroups[subnames[index]]
+    if (subgroup) {
+      for (const { filepath, captions} of subgroup) {
+        const ext = reSrtEnLang.exec(filepath)[0]
+        await write(path.join(dirname, basename + ext), captions.stringify())
+      }
+    }
   }
 }
 
 const cleanupFolder = async (inpath) => {
   const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], { 'cwd': inpath })
-  for (let filepath of filepaths) {
+  for (const filepath of filepaths) {
     const basename = path.basename(filepath)
     const dirname = path.dirname(filepath)
     const ext = path.extname(filepath).toLowerCase()
-    if (ext === '.srt') {
-      if (!reSrtEnLang.test(basename)) {
-        // Add "en" language code to subtitle name.
-        const repath = basename.replace(/\.srt$/i, '.en.srt')
-        await move(filepath, repath, { 'overwrite': true })
-        filepath = repath
-      }
-      await subscrub(filepath)
+    if (ext === '.srt' && reSrtEnLang.test(basename)) {
+      continue
     }
-    else {
-      console.log(`Trashing ${ basename }.`)
-      await trash(filepath)
-    }
+    console.log(`Trashing ${ basename }.`)
+    await trash(filepath)
   }
 }
 
@@ -580,18 +589,18 @@ const cleanupFolder = async (inpath) => {
 
     console.log(`Starting ${ manager } renamer scan.`)
     const subs = await getSubsToRename(inpath)
+    const fromTime = Date.now()
     if (await renameVideos(inpath, outpath)) {
-      const filepath = await delay(() => getNewestVideo(libpath), 1000 * 60 * 2.5)
-      if (filepath) {
-        const end = moment()
-        const start = moment(end).subtract(5, 'minutes')
-        const { mtime } = await stat(filepath)
-        if (moment(mtime).isBetween(start, end, null, '[]')) {
-          if (category === 'tv') {
-            await restoreSubs(filepath, subs)
-          }
-          await cleanupFolder(path.dirname(filepath))
-        }
+      let filepaths
+      await poll(() => {
+        filepaths = getNewestVideos(libpath, fromTime)
+        return filepaths.length
+      }, { 'frequency': 200, 'limit': 1000 * 60 * 2.5 })
+
+      console.log('filepaths', filepaths)
+      if (filepaths.length) {
+        await restoreSubs(filepaths, subs)
+        await cleanupFolder(path.dirname(filepaths[0]))
       } else {
         console.log('Unable to cleanup renamed files.')
       }
