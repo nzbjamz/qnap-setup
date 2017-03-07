@@ -516,13 +516,13 @@ const renameVideos = async (inpath, outpath) => {
   return true
 }
 
-const findVideos = async (inpath, touchTime) => {
+const findVideos = async (inpath, date=new Date(NaN)) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_MP4], { cwd })
   const result = []
   for (const filepath of filepaths) {
     const { mtime } = await stat(filepath)
-    if (!moment(mtime).isBefore(touchTime)) {
+    if (!moment(mtime).isBefore(date)) {
       result.push(filepath)
     }
   }
@@ -604,8 +604,8 @@ const cleanupFolder = async (inpath) => {
     console.log('Adding metadata.')
     await tagVideos(vidsToTag)
   }
-  const touchTime = new Date
-  await touchFiles(inpath, touchTime)
+  const touchDate = new Date
+  await touchFiles(inpath, touchDate)
 
   const category = getCategory(inpath)
   const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
@@ -619,7 +619,7 @@ const cleanupFolder = async (inpath) => {
     if (await renameVideos(inpath, outpath)) {
       let filepaths
       await poll(async () => {
-        filepaths = await findVideos(libpath, touchTime)
+        filepaths = await findVideos(libpath, touchDate)
         return filepaths.length
       }, { 'frequency': 2000, 'limit': 1000 * 60 * 2.5 })
 
