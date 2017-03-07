@@ -14,7 +14,7 @@ const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
-const { glob, isFile, move, poll, read, remove, stat, utimes, write } = require('./util.js')
+const { glob, isFile, move, poll, read, remove, stat, touch, write } = require('./util.js')
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -470,13 +470,13 @@ const getSubsToRename = async (inpath) => {
   return result
 }
 
-const touchFiles = async (inpath, now=new Date) => {
+const touchFiles = async (inpath, date=new Date) => {
   const filepaths = await isFile(inpath)
     ? [path.resolve(inpath)]
     : await glob([GLOB_MP4, GLOB_SRT], { 'cwd': inpath })
 
   for (const filepath of filepaths) {
-    await utimes(filepath, now, now)
+    await touch(filepath, date)
   }
 }
 

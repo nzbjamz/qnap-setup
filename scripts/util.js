@@ -72,6 +72,10 @@ const poll = (func, opts={}) => {
   })
 }
 
+const touch = (filepath, date=new Date) => (
+  utimes(filepath, date, date)
+)
+
 module.exports = {
   glob,
   isFile,
@@ -80,6 +84,6 @@ module.exports = {
   read,
   remove,
   stat,
-  utimes,
+  touch,
   write
 }
