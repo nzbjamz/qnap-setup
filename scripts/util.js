@@ -9,7 +9,6 @@ const pify = require('pify')
 
 /*----------------------------------------------------------------------------*/
 
-const isFile = async (p) => (await stat(p)).isFile()
 const read = pify(fs.readFile)
 const remove = pify(fs.remove)
 const stat = pify(fs.stat)
@@ -36,6 +35,10 @@ const glob = async (patterns, opts) => {
   } catch (e) {}
   return []
 }
+
+const isFile = async (filepath) => (
+  (await stat(filepath)).isFile()
+)
 
 const move = (() => {
   const _move = pify(fs.move)
