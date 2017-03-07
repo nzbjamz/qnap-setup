@@ -553,6 +553,9 @@ const restoreSubs = async (vidpaths, subs) => {
       for (const { filepath, captions } of subgroup) {
         const { 0:ext } = reSrtEnLang.exec(filepath) || ['.srt']
         await write(path.join(dirname, basename + ext), captions.stringify())
+        if (ext !== '.srt') {
+          await remove(path.join(dirname, basename + '.srt'))
+        }
       }
     }
   }
@@ -560,14 +563,9 @@ const restoreSubs = async (vidpaths, subs) => {
 
 const cleanupFolder = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
-  const filepaths = await glob([GLOB_ALL, `!${ GLOB_VIDEO }`], { cwd })
+  const filepaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], { cwd })
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
-    const dirname = path.dirname(filepath)
-    const ext = path.extname(filepath).toLowerCase()
-    if (ext === '.srt' && reSrtEnLang.test(basename)) {
-      continue
-    }
     try {
       console.log(`Trashing ${ basename }.`)
       await trash([filepath])
