@@ -76,7 +76,7 @@ const poll = (func, opts={}) => {
 }
 
 const touch = (filepath, date=new Date) => {
-  date = new Date(date)
+  date = moment(date).toDate()
   return utimes(filepath, date, date)
 }
 
