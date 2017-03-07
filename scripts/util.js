@@ -57,7 +57,7 @@ const move = (() => {
 
 const poll = (func, opts={}) => {
   let { frequency=200, limit=1000 } = opts
-  limit = moment().add(limit)
+  limit = moment().add(limit, 'ms')
   return new Promise((resolve) => {
     const poller = async () => {
       const result = await func()
