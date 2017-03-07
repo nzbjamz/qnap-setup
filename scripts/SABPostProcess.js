@@ -483,7 +483,6 @@ const touchFiles = async (inpath, now=Date.now()) => {
 const renameVideos = async (inpath, outpath) => {
   inpath = path.resolve(inpath)
   outpath = path.resolve(outpath)
-  await move(inpath, outpath)
 
   const args = argv._.slice()
   args[0] = outpath
@@ -502,6 +501,7 @@ const renameVideos = async (inpath, outpath) => {
     // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
     args[6] = 0
   }
+  await move(inpath, outpath)
   try {
     // Since `SABNZBD` is configured with `convert = False`
     // invoking SABPostProcess.py will simply start a renamer scan.
