@@ -470,7 +470,7 @@ const getSubsToRename = async (inpath) => {
   return result
 }
 
-const touchFiles = async (inpath, now=Date.now()) => {
+const touchFiles = async (inpath, now=new Date) => {
   const filepaths = await isFile(inpath)
     ? [path.resolve(inpath)]
     : await glob([GLOB_MP4, GLOB_SRT], { 'cwd': inpath })
@@ -604,7 +604,7 @@ const cleanupFolder = async (inpath) => {
     console.log('Adding metadata.')
     await tagVideos(vidsToTag)
   }
-  const touchTime = Date.now()
+  const touchTime = new Date
   await touchFiles(inpath, touchTime)
 
   const category = getCategory(inpath)
