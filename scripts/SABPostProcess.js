@@ -623,7 +623,6 @@ const cleanupFolder = async (inpath) => {
         return filepaths.length
       }, { 'frequency': 2000, 'limit': 1000 * 60 * 2.5 })
 
-      console.log('filepaths', filepaths)
       if (filepaths.length) {
         await restoreSubs(filepaths, subs)
         await cleanupFolder(filepaths[0])
