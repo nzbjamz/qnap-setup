@@ -4,9 +4,6 @@ echo 'Cleaning up QNAP packages.'
 
 # Replace Entware's python with QSabNZBdPlus' because it's compiled with
 # zlib support and to ensure QSabNZBdPlus has access to pip packages.
-rm -rf /share/CACHEDEV1_DATA/.qpkg/Entware-ng/include/python2.7
-rm -rf /share/CACHEDEV1_DATA/.qpkg/Entware-ng/lib/python2.7
-
 cd /share/CACHEDEV1_DATA/.qpkg/Entware-ng/bin/
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python python
 ln -sf /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/python2 python2
