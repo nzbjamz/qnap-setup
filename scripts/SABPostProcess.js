@@ -27,6 +27,7 @@ const { argv } = require('yargs')
   .alias('tmdb', 'tmdbid')
   .alias('tv', 'tvdbid')
 
+const FFMPEG_ERROR = 'Error converting file, FFMPEG error.'
 const FFMPEG_PATH = '/opt/bin/ffmpeg'
 const FFPROBE_PATH = '/opt/bin/ffprobe'
 
@@ -249,17 +250,6 @@ const extractSubs = async (file, sublang) => {
 }
 
 const transcode = async (filepath, args, opts) => {
-  const hasFallback = () => (
-    config.MP4.ffmpeg !== FFMPEG_PATH
-  )
-
-  const wrap = (func) => function(...args) {
-    if (!hasFallback()) {
-      func.apply(this, args)
-    }
-  }
-
-  const stdios = ['stderr', 'stdout']
   const streams = await ffprobe(filepath)
   const auds = getAudioStreams(streams)
   const flac = firstOfCodec(auds, 'flac')
@@ -270,37 +260,41 @@ const transcode = async (filepath, args, opts) => {
   }
   const temppath = await tempWrite(ini.stringify(config))
   const params = ['--auto', '--convertmp4', '--config', temppath, '--input', filepath, ...args]
-  const spawned = execa(MANUAL_SCRIPT_PATH, params, { 'reject': true })
+  let spawned = execa(MANUAL_SCRIPT_PATH, params)
+
   const proxy = Object.assign(new Promise((resolve) => {
+    const ondata = (chunk) => {
+      if (chunk.toString().includes(FFMPEG_ERROR)) {
+        spawned.stdout.emit('error', new Error(FFMPEG_ERROR))
+      }
+    }
+
+    const onresolve = (result) => {
+      // Remove progress indicator.
+      const { stdout } = result
+      result.stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
+      resolve(result)
+    }
+
+    spawned.stdout.on('data', ondata)
     spawned
-      .then((result) => {
-        const errMsg = 'Error converting file, FFMPEG error.'
-        const { stdout } = result
-        if (stdout.includes(errMsg)) {
-          throw new Error(errMsg)
-        }
-        // Remove progress indicator.
-        result.stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
-        resolve(result)
-      })
-      .catch(async (e) => {
-        if (!hasFallback()) {
-          throw e
+      .then(onresolve)
+      .catch(async () => {
+        if (config.MP4.ffmpeg === FFMPEG_PATH) {
+          throw new Error(FFMPEG_ERROR)
         }
         // Fallback to non-VAAPI accelerated ffmpeg.
         config.MP4.ffmpeg = FFMPEG_PATH
         config.MP4['video-codec'] = 'h264,x264'
-        const { process: respawned } = await transcode(filepath, args, config)
-        stdios.forEach((key) => respawned[key].pipe(proxy[key]))
-        respawned.then(resolve)
+        spawned.stdout.removeListener('data', ondata).unpipe(proxy.stdout)
+        spawned = (await transcode(filepath, args, config)).process
+        spawned.stdout.on('data', ondata).pipe(proxy.stdout)
+        spawned.then(onresolve)
       })
   }), spawned)
 
-  stdios.forEach((key) => {
-    proxy[key] = new stream.PassThrough
-    proxy[key].end = wrap(proxy[key].end)
-    spawned[key].pipe(proxy[key])
-  })
+  proxy.stdout = new stream.PassThrough
+  spawned.stdout.pipe(proxy.stdout)
 
   return { 'process': proxy }
 }
