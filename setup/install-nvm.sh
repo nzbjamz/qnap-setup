@@ -13,7 +13,7 @@ sed 's:NVM_DIR=.*:NVM_DIR=/share/CACHEDEV1_DATA/.nvm:' ~/.profile > .profile.tmp
 mv -f .profile.tmp .profile
 
 # Add NVM_DIR variable to /opt/etc/profile so it will persist after a reboot.
-cat << EOF > /opt/etc/profile
+cat << EOF >> /opt/etc/profile
 export NVM_DIR=/share/CACHEDEV1_DATA/.nvm
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" # This loads nvm
 
