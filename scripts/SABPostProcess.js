@@ -44,7 +44,7 @@ const GLOB_MP4 = '**/*.{mp4,m4v}'
 const GLOB_SRT = '**/*.srt'
 const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
 
-const reSrtEnLang = /\.en\.(?:\w+\.)*?srt$/i
+const reSrtEnLang = /\.eng?\.(?:\w+\.)*?srt$/i
 
 const dispositionMap = new Map(Object.entries({
   'forced': 'forced',
@@ -542,20 +542,18 @@ const restoreSubs = async (vidpaths, subs) => {
   const subnames = Object.keys(subgroups).sort(naturalCompare)
   vidpaths.sort(naturalCompare)
 
-  let index = -1
-  const { length } = vidpaths
-  while (++index < length) {
-    const vidpath = path.resolve(vidpaths[index])
+  let { length } = vidpaths
+  while (length--) {
+    const vidpath = path.resolve(vidpaths[length])
     const basename = path.basename(vidpath, path.extname(vidpath))
     const dirname = path.dirname(vidpath)
-    const subgroup = subgroups[subnames[index]]
-    if (subgroup) {
-      for (const { filepath, captions } of subgroup) {
-        const { 0:ext } = reSrtEnLang.exec(filepath) || ['.srt']
-        await write(path.join(dirname, basename + ext), captions.stringify())
-        if (ext !== '.srt') {
-          await remove(path.join(dirname, basename + '.srt'))
-        }
+    const subgroup = subgroups[subnames[length]] || []
+    for (const { filepath, captions } of subgroup) {
+      let { 0:ext } = reSrtEnLang.exec(filepath) || ['.srt']
+      ext = ext.replace('.eng.', '.en.')
+      await write(path.join(dirname, basename + ext), captions.stringify())
+      if (ext !== '.srt') {
+        await remove(path.join(dirname, basename + '.srt'))
       }
     }
   }
