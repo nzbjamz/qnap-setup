@@ -25,3 +25,4 @@ source ~/.profile
 # Install Node 7.
 nvm install 7
 nvm alias default 7
+node -v
