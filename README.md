@@ -43,6 +43,7 @@ ssh -l admin <QNAP_SERVER_NAME_OR_IP>
    *Note: Once Entware is started `/opt` should be a symlink to `/share/CACHEDEV1_DATA/.qpkg/Entware-ng/`*
    ```shell
 /share/CACHEDEV1_DATA/.qpkg/Entware-ng/Entware-ng.sh start
+source ~/.profile
 ```
 
 1. Clone this qnap-setup repo and run the setup.
