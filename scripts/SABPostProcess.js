@@ -164,9 +164,8 @@ const getCategory = (inpath) => {
   if (category) {
     return category
   }
-  const lowerpath = path.resolve(inpath).toLowerCase()
-  if (/\b(?:season \d+|s\d+e\d+)\b/.test(lowerpath) ||
-      lowerpath.split(path.sep).includes('tv')) {
+  const lower = path.resolve(inpath).toLowerCase()
+  if (/\b(?:season \d+|s\d+e\d+)\b/.test(lower) || lower.split(path.sep).includes('tv')) {
     return 'tv'
   }
   return 'movies'
