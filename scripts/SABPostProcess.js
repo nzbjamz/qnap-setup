@@ -220,7 +220,6 @@ const extractSubs = async (file, sublang) => {
   const dirname = path.dirname(filepath)
   const subs = getSubStreams(streams)
   const seen = new Map
-
   const maps = subs.reduce((maps, sub) => {
     const { disposition, lang } = sub
     if (disposition.default || sublang == null || lang === sublang) {
