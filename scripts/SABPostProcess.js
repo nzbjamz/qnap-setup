@@ -9,7 +9,6 @@ const isPathInside = require('path-is-inside')
 const moment = require('moment')
 const naturalCompare = require('string-natural-compare')
 const path = require('path')
-const stream = require('stream')
 const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
@@ -209,6 +208,10 @@ const getTvdbid = async (inpath) => (
   argv.tvdbid || ''
 )
 
+const toConfigPath = (config) => (
+  tempWrite(ini.stringify(config))
+)
+
 /*----------------------------------------------------------------------------*/
 
 const extractSubs = async (file, sublang) => {
@@ -237,10 +240,11 @@ const extractSubs = async (file, sublang) => {
     return maps
   }, [])
 
+  if (!maps.length) {
+    return
+  }
   try {
-    if (maps.length) {
-      await ffmpeg(filepath, ['-vn', '-an', '-scodec', 'srt', ...maps])
-    }
+    await ffmpeg(filepath, ['-vn', '-an', '-scodec', 'srt', ...maps])
   } catch (e) {
     for (const subpath of seen.values()) {
       await remove(subpath)
@@ -250,53 +254,22 @@ const extractSubs = async (file, sublang) => {
 }
 
 const transcode = async (filepath, args, opts) => {
-  const streams = await ffprobe(filepath)
-  const auds = getAudioStreams(streams)
-  const flac = firstOfCodec(auds, 'flac')
   const config = defaultsDeep({}, opts, ini.parse(await read(CONFIG_PATH, 'utf8')))
-  if (flac) {
-    config.MP4['video-codec'] = 'h264,x264'
-    config.MP4.ffmpeg = FFMPEG_PATH
-  }
-  const temppath = await tempWrite(ini.stringify(config))
-  const params = ['--auto', '--convertmp4', '--config', temppath, '--input', filepath, ...args]
-  let spawned = execa(MANUAL_SCRIPT_PATH, params)
-
-  const proxy = Object.assign(new Promise((resolve) => {
-    const ondata = (chunk) => {
-      if (chunk.toString().includes(FFMPEG_ERROR)) {
-        spawned.stdout.emit('error', new Error(FFMPEG_ERROR))
-      }
-    }
-
-    const onresolve = (result) => {
-      // Remove progress indicator.
-      const { stdout } = result
-      result.stdout = stdout.replace(/\r\[#* *\] \d+%/g, '')
-      resolve(result)
-    }
-
-    spawned.stdout.on('data', ondata)
+  const params = ['--auto', '--convertmp4', '--config', await toConfigPath(config), '--input', filepath, ...args]
+  const spawned = execa(MANUAL_SCRIPT_PATH, params)
+  const promise = new Promise((resolve, reject) => {
     spawned
-      .then(onresolve)
-      .catch(async () => {
-        if (config.MP4.ffmpeg === FFMPEG_PATH) {
-          throw new Error(FFMPEG_ERROR)
-        }
-        // Fallback to non-VAAPI accelerated ffmpeg.
-        config.MP4.ffmpeg = FFMPEG_PATH
-        config.MP4['video-codec'] = 'h264,x264'
-        spawned.stdout.removeListener('data', ondata).unpipe(proxy.stdout)
-        spawned = (await transcode(filepath, args, config)).process
-        spawned.stdout.on('data', ondata).pipe(proxy.stdout)
-        spawned.then(onresolve)
+      .then((result) => {
+        // Remove progress indicator.
+        result.stdout = result.stdout.replace(/\r\[#* *\] \d+%/g, '')
+        resolve(result)
       })
-  }), spawned)
+      .catch(reject)
+  })
 
-  proxy.stdout = new stream.PassThrough
-  spawned.stdout.pipe(proxy.stdout)
-
-  return { 'process': proxy }
+  spawned.then = promise.then.bind(promise)
+  spawned.catch = promise.catch.bind(promise)
+  return { 'process': spawned }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -334,23 +307,43 @@ const extractSubsFromVideos = async (files) => {
   }
 }
 
-const transcodeVideos = async (files) => {
-  for (const { filepath } of files) {
-    const { process: spawned } = await transcode(filepath, ['--notag'], {
-      'MP4': { 'ios-audio': 'True', 'relocate_moov': 'False' }
-    })
+const transcodeVideo = async (filepath, opts={}) => {
+  try {
+    const { process: spawned } = await transcode(filepath, ['--notag'], opts)
     if (MANUAL_RUN) {
       spawned.stdout.pipe(process.stdout)
     }
-    try {
-      const { stdout } = await spawned
-      if (!MANUAL_RUN) {
-        console.log(stdout)
-      }
-    } catch (e) {
+    const { stdout } = await spawned
+    if (stdout.includes(FFMPEG_ERROR)) {
+      throw new Error
+    }
+    if (!MANUAL_RUN) {
+      console.log(stdout)
+    }
+  } catch (e) {
+    if (opts.MP4.ffmpeg === FFMPEG_PATH) {
       const basename = path.basename(filepath)
       console.log(`Failed to transcode ${ basename }.`)
+      return
     }
+    // Fallback to non-VAAPI accelerated ffmpeg.
+    opts.MP4.ffmpeg = FFMPEG_PATH
+    opts.MP4['video-codec'] = 'h264,x264'
+    await transcodeVideo(filepath, opts)
+  }
+}
+
+const transcodeVideos = async (files) => {
+  for (const { filepath } of files) {
+    const streams = await ffprobe(filepath)
+    const auds = getAudioStreams(streams)
+    const flac = firstOfCodec(auds, 'flac')
+    const opts = { 'MP4': { 'ios-audio': 'True', 'relocate_moov': 'False' } }
+    if (flac) {
+      opts.MP4['video-codec'] = 'h264,x264'
+      opts.MP4.ffmpeg = FFMPEG_PATH
+    }
+    await transcodeVideo(filepath, opts)
   }
 }
 
