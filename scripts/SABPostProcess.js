@@ -177,7 +177,7 @@ const getImdbId = async (inpath) => {
     return imdbid
   }
   inpath = path.resolve(inpath)
-  const { 0:pathid } = /\btt\d{7,}\b/.exec(inpath) || ['']
+  const { 0:pathid } = /\btt\d{7,}\b/i.exec(inpath) || ['']
   if (pathid) {
     return pathid
   }
