@@ -45,6 +45,9 @@ const GLOB_SRT = '**/*.srt'
 const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
 
 const reSrtEnLang = /\.eng?\.(?:\w+\.)*?srt$/i
+const reTv = /^tv$/i
+const reTvSeason = /\bseason \d+\b/i
+const reTvSeasonEpisode = /\bs\d+e\d+\b/i
 
 const dispositionMap = new Map(Object.entries({
   'forced': 'forced',
@@ -164,11 +167,7 @@ const getCategory = (inpath) => {
   if (category) {
     return category
   }
-  const lower = path.resolve(inpath).toLowerCase()
-  if (/\b(?:season \d+|s\d+e\d+)\b/.test(lower) || lower.split(path.sep).includes('tv')) {
-    return 'tv'
-  }
-  return 'movies'
+  return isTv(inpath) ? 'tv' : 'movies'
 }
 
 const getImdbId = async (inpath) => {
@@ -205,6 +204,12 @@ const getTmdbid = async (inpath) => (
 
 const getTvdbid = async (inpath) => (
   argv.tvdbid || ''
+)
+
+const isTv = (filepath) => (
+  path.resolve(filepath).split(path.sep).some((p) => (
+    reTv.test(p) || reTvSeason.test(p) || reTvSeasonEpisode.test(p)
+  ))
 )
 
 const toConfigPath = (config) => (
