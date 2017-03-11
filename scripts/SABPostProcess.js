@@ -516,6 +516,10 @@ const findVideos = async (inpath, date=new Date(NaN)) => {
 }
 
 const restoreSubs = async (vidpaths, subs) => {
+  vidpaths = vidpaths
+    .map((vidpath) => path.resolve(vidpath))
+    .sort(naturalCompare)
+
   const subgroups = {}
   for (const sub of subs) {
     const key = path.basename(sub.filepath).replace(reSrtEnLang, '')
@@ -525,12 +529,13 @@ const restoreSubs = async (vidpaths, subs) => {
       subgroups[key] = [sub]
     }
   }
-  const subnames = Object.keys(subgroups).sort(naturalCompare)
-  vidpaths.sort(naturalCompare)
+  const subnames = Object
+    .keys(subgroups)
+    .sort(naturalCompare)
 
   let { length } = vidpaths
   while (length--) {
-    const vidpath = path.resolve(vidpaths[length])
+    const vidpath = vidpaths[length]
     const basename = path.basename(vidpath, path.extname(vidpath))
     const dirname = path.dirname(vidpath)
     const subgroup = subgroups[subnames[length]] || []
