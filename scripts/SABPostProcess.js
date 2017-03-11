@@ -249,9 +249,7 @@ const extractSubs = async (file, sublang) => {
   try {
     await ffmpeg(filepath, ['-vn', '-an', '-scodec', 'srt', ...maps])
   } catch (e) {
-    for (const subpath of seen.values()) {
-      await remove(subpath)
-    }
+    await Promise.all([...seen.values()].map((subpath) => remove(subpath)))
     throw e
   }
 }
@@ -283,7 +281,7 @@ const getVideosToTranscode = async (inpath, force) => {
     : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
   const result = []
-  for (const filepath of filepaths) {
+  await Promise.all(filepaths.map(async (filepath) => {
     const ext = path.extname(filepath).toLowerCase()
     const streams = await ffprobe(filepath)
     const auds = getAudioStreams(streams)
@@ -294,12 +292,12 @@ const getVideosToTranscode = async (inpath, force) => {
     if (force || !(ext === '.mp4' && aac && !subs.length && auds.length < 3)) {
       result.push({ filepath, streams })
     }
-  }
+  }))
   return result
 }
 
 const extractSubsFromVideos = async (files) => {
-  for (const file of files) {
+  await Promise.all(files.map(async (file) => {
     try {
       await extractSubs(file, 'en')
     } catch (e) {
@@ -307,7 +305,7 @@ const extractSubsFromVideos = async (files) => {
       const basename = path.basename(filepath)
       console.log(`Failed to extract subtitles from ${ basename }.`)
     }
-  }
+  }))
 }
 
 const transcodeVideo = async (filepath, opts={}) => {
@@ -401,15 +399,14 @@ const getVideosToTag = async (inpath, force) => {
     : await glob([GLOB_MP4], { 'cwd': inpath })
 
   const result = []
-  for (const filepath of filepaths) {
+  await Promise.all(filepaths.map(async (filepath) => {
     const streams = await ffprobe(filepath)
     const vids = getVideoStreams(streams)
     const mjpeg = firstOfCodec(vids, 'mjpeg')
-
     if (force || !mjpeg) {
       result.push({ filepath, streams })
     }
-  }
+  }))
   return result
 }
 
@@ -450,13 +447,13 @@ const getSubsToRename = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_SRT], { cwd })
   const result = []
-  for (const filepath of filepaths) {
+  await Promise.all(filepaths.map(async (filepath) => {
     const captions = new Subtitle
     try {
       captions.parse(await read(filepath, 'utf8'))
       result.push({ filepath, captions })
     } catch (e) {}
-  }
+  }))
   return result
 }
 
@@ -465,9 +462,7 @@ const touchFiles = async (inpath, date=new Date) => {
     ? [path.resolve(inpath)]
     : await glob([GLOB_MP4, GLOB_SRT], { 'cwd': inpath })
 
-  for (const filepath of filepaths) {
-    await touch(filepath, date)
-  }
+  await Promise.all(filepaths.map((filepath) => touch(filepath, date)))
 }
 
 const renameVideos = async (inpath, outpath) => {
@@ -510,12 +505,12 @@ const findVideos = async (inpath, date=new Date(NaN)) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_MP4], { cwd })
   const result = []
-  for (const filepath of filepaths) {
+  await Promise.all(filepaths.map(async (filepath) => {
     const { mtime } = await stat(filepath)
     if (!moment(mtime).isBefore(date)) {
       result.push(filepath)
     }
-  }
+  }))
   return result
 }
 
@@ -543,21 +538,23 @@ const restoreSubs = async (vidpaths, subs) => {
     const basename = path.basename(vidpath, path.extname(vidpath))
     const dirname = path.dirname(vidpath)
     const subgroup = subgroups[subnames[length]] || []
-    for (const { filepath, captions } of subgroup) {
+    await Promise.all(subgroup.map(async ({ filepath, captions }) => {
       let { 0:ext } = reSrtEnLang.exec(filepath) || ['']
       if (ext) {
         ext = ext.replace('.eng.', '.en.')
-        await write(path.join(dirname, basename + ext), captions.stringify())
-        await remove(path.join(dirname, basename + '.srt'))
+        await Promise.all([
+          write(path.join(dirname, basename + ext), captions.stringify()),
+          remove(path.join(dirname, basename + '.srt'))
+        ])
       }
-    }
+    }))
   }
 }
 
 const cleanupFolder = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], { cwd })
-  for (const filepath of filepaths) {
+  await Promise.all(filepaths.map(async (filepath) => {
     const basename = path.basename(filepath)
     try {
       console.log(`Trashing ${ basename }.`)
@@ -565,7 +562,7 @@ const cleanupFolder = async (inpath) => {
     } catch (e) {
       console.log(`Failed to trash ${ basename }.`)
     }
-  }
+  }))
 }
 
 /*----------------------------------------------------------------------------*/

@@ -58,7 +58,7 @@ const subscrub = async (inpath) => {
     ? [path.resolve(inpath)]
     : await glob(['**/*.srt'], { 'cwd': inpath })
 
-  for (const filepath of filepaths) {
+  await Promise.all(filepaths.map(async (filepath) => {
     const basename = path.basename(filepath)
     const captions = new Subtitle
 
@@ -66,7 +66,7 @@ const subscrub = async (inpath) => {
       captions.parse(await read(filepath, 'utf8'))
     } catch (e) {
       console.log(`Failed to parse ${ basename }.`)
-      continue
+      return
     }
     let { _subtitles } = captions
     const { length } = _subtitles
@@ -103,7 +103,7 @@ const subscrub = async (inpath) => {
         await remove(filepath)
       }
     }
-  }
+  }))
 }
 
 /*----------------------------------------------------------------------------*/
