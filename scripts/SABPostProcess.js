@@ -301,8 +301,7 @@ const extractSubsFromVideos = async (files) => {
     try {
       await extractSubs(file, 'en')
     } catch (e) {
-      const { filepath } = file
-      const basename = path.basename(filepath)
+      const basename = path.basename(file.filepath)
       console.log(`Failed to extract subtitles from ${ basename }.`)
     }
   }))
