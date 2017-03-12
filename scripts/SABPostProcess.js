@@ -611,7 +611,7 @@ const cleanupFolder = async (inpath) => {
       await poll(async () => {
         filepaths = await findVideos(libpath, touchDate)
         return filepaths.length
-      }, { 'frequency': 2000, 'limit': 1000 * 60 * 2.5 })
+      }, { 'frequency': 5000, 'limit': 1000 * 60 * 2.5 })
 
       if (filepaths.length) {
         await restoreSubs(filepaths, subs)
