@@ -13,7 +13,7 @@ const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
-const { glob, isFile, move, poll, read, remove, stat, touch, write } = require('./util.js')
+const { exists, glob, isFile, move, poll, read, remove, stat, touch, write } = require('./util.js')
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -485,19 +485,15 @@ const renameFiles = async (inpath, outpath) => {
     // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
     args[6] = 0
   }
-  await move(inpath, outpath)
+  // Since `[SABNZBD]` is configured with `convert = False`
+  // invoking SABPostProcess.py will simply start a renamer scan.
   try {
-    // Since `SABNZBD` is configured with `convert = False`
-    // invoking SABPostProcess.py will simply start a renamer scan.
+    await move(inpath, outpath)
     const spawned = execa(SAB_SCRIPT_PATH, args)
     spawned.stdout.pipe(process.stdout)
     await spawned
-  } catch (e) {
-    console.log('Failed to start renamer scan.')
-    await move(outpath, inpath)
-    return false
-  }
-  return true
+  } catch (e) {}
+  return !await exists(outpath)
 }
 
 const findVideos = async (inpath, date=new Date(NaN)) => {
@@ -618,6 +614,9 @@ const cleanupFolder = async (inpath) => {
       } else {
         console.log('Failed to cleanup renamed files.')
       }
+    }
+    else {
+      console.log('Failed to rename files.')
     }
   }
   console.log('Completed.')
