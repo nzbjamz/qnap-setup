@@ -162,13 +162,9 @@ const getRank = ({ channel_layout }) => (
 
 /*----------------------------------------------------------------------------*/
 
-const getCategory = (inpath) => {
-  const { category } = argv
-  if (category) {
-    return category
-  }
-  return isTv(inpath) ? 'tv' : 'movies'
-}
+const getCategory = (inpath) => (
+  argv.category || (isTv(inpath) ? 'tv' : 'movies')
+)
 
 const getImdbId = async (inpath) => {
   const { imdbid } = argv
