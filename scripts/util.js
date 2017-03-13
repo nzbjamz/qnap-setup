@@ -9,6 +9,7 @@ const pify = require('pify')
 
 /*----------------------------------------------------------------------------*/
 
+const exists = pify((a, b) => fs.exists(a, (c) => b(null, c)))
 const read = pify(fs.readFile)
 const remove = pify(fs.remove)
 const stat = pify(fs.stat)
@@ -81,6 +82,7 @@ const touch = (filepath, date=new Date) => {
 }
 
 module.exports = {
+  exists,
   glob,
   isFile,
   move,
