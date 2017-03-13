@@ -464,7 +464,7 @@ const touchFiles = async (inpath, date=new Date) => {
   await Promise.all(filepaths.map((filepath) => touch(filepath, date)))
 }
 
-const renameVideos = async (inpath, outpath) => {
+const renameFiles = async (inpath, outpath) => {
   inpath = path.resolve(inpath)
   outpath = path.resolve(outpath)
 
@@ -605,7 +605,7 @@ const cleanupFolder = async (inpath) => {
     const subs = await getSubsToRename(inpath)
 
     console.log(`Starting ${ manager } renamer scan.`)
-    if (await renameVideos(inpath, outpath)) {
+    if (await renameFiles(inpath, outpath)) {
       let filepaths
       await poll(async () => {
         filepaths = await findVideos(libpath, touchDate)
