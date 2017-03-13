@@ -43,6 +43,7 @@
 
   * Skip Free Space Check: `No`
   * Use Hardlinks instead of Copy: `Yes`
+  * Import Extra Files: `srt`
 
 ### File Management
 
