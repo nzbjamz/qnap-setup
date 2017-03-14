@@ -30,14 +30,21 @@ const FFMPEG_ERROR = 'Error converting file, FFMPEG error.'
 const FFMPEG_PATH = '/opt/bin/ffmpeg'
 const FFPROBE_PATH = '/opt/bin/ffprobe'
 
+const COMPLETE_ROOT = '/share/CACHEDEV1_DATA/Download/complete'
+const MULTIMEDIA_ROOT = '/share/CACHEDEV1_DATA/Multimedia'
+const SCRIPTS_ROOT = '/share/CACHEDEV1_DATA/scripts'
+
+const COUCH_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'Movies')
+const COUCH_SCAN_ROOT = path.join(COMPLETE_ROOT, 'movies')
+
+const SONARR_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'TV')
+const SONARR_SCAN_ROOT = path.join(COMPLETE_ROOT, 'tv')
+
 const CONFIG_PATH = path.join(__dirname, 'autoProcess.ini')
-const COUCH_LIBRARY_PATH = '/share/CACHEDEV1_DATA/Multimedia/Movies'
-const SONARR_LIBRARY_PATH = '/share/CACHEDEV1_DATA/Multimedia/TV'
-const WATCH_PATH = '/share/CACHEDEV1_DATA/Download/complete'
 
 const MANUAL_RUN = argv._.length !== 7
-const MANUAL_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/manual.py'
-const SAB_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/SABPostProcess.py'
+const MANUAL_SCRIPT_PATH = path.join(SCRIPTS_ROOT, 'manual.py')
+const SAB_SCRIPT_PATH = path.join(SCRIPTS_ROOT, 'SABPostProcess.py')
 
 const GLOB_ALL = '**/*'
 const GLOB_IGNORE = '**/*.ignore'
@@ -461,18 +468,19 @@ const touchFiles = async (inpath, date=new Date) => {
   await Promise.all(filepaths.map((filepath) => touch(filepath, date)))
 }
 
-const renameFiles = async (inpath, outpath) => {
+const renameFiles = async (inpath, scanroot) => {
   inpath = path.resolve(inpath)
-  outpath = path.resolve(outpath)
+  const foldername = path.basename(await isFile(inpath) ? path.dirname(inpath) : inpath)
+  const scanpath = path.resolve(scanroot, foldername)
 
   const args = argv._.slice()
-  args[0] = outpath
+  args[0] = scanpath
   if (MANUAL_RUN) {
     args.length = 7
     // The name of the job name without path or file extension.
-    args[2] = await isFile(inpath) ? path.basename(path.dirname(inpath)) : path.basename(inpath)
+    args[2] = foldername
     // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
-    args[1] = `${ args[2] }.nzb`
+    args[1] = `${ foldername }.nzb`
     // The indexer's report number (not used by SABPostProcess.py).
     args[3] = 0
     // The user-defined category used to signal which manager is notified.
@@ -485,14 +493,14 @@ const renameFiles = async (inpath, outpath) => {
   // Since `[SABNZBD]` is configured with `convert = False`
   // invoking SABPostProcess.py will simply start a renamer scan.
   try {
-    await move(inpath, outpath)
+    await move(inpath, scanpath)
     const spawned = execa(SAB_SCRIPT_PATH, args)
     spawned.stdout.pipe(process.stdout)
     await spawned
   } catch (e) {}
 
-  if (await exists(outpath)) {
-    const ignored = await glob([GLOB_IGNORE], { 'cwd': outpath })
+  if (await exists(scanpath)) {
+    const ignored = await glob([GLOB_IGNORE], { 'cwd': scanpath })
     await Promise.all(ignored.map((filepath) => remove(filepath)))
     return false
   }
@@ -596,18 +604,16 @@ const cleanupFolder = async (inpath) => {
   await touchFiles(inpath, touchDate)
 
   const category = getCategory(inpath)
-  const libpath = category === 'movies' ? COUCH_LIBRARY_PATH : SONARR_LIBRARY_PATH
-  if (!isPathInside(inpath, libpath)) {
-    const foldername = path.basename(await isFile(inpath) ? path.dirname(inpath) : inpath)
-    const manager = category === 'movies' ? 'CouchPotato' : 'Sonarr'
-    const outpath = path.join(WATCH_PATH, category, foldername)
+  const libroot = category === 'movies' ? COUCH_LIBRARY_ROOT : SONARR_LIBRARY_ROOT
+  if (!isPathInside(inpath, libroot)) {
+    const scanroot = category === 'movies' ? COUCH_SCAN_ROOT : SONARR_SCAN_ROOT
     const subs = await getSubsToRename(inpath)
 
     console.log(`Starting ${ manager } renamer scan.`)
-    if (await renameFiles(inpath, outpath)) {
+    if (await renameFiles(inpath, scanroot)) {
       let filepaths
       await poll(async () => {
-        filepaths = await findVideos(libpath, touchDate)
+        filepaths = await findVideos(libroot, touchDate)
         return filepaths.length
       }, { 'frequency': 5000, 'limit': 1000 * 60 * 2.5 })
 
