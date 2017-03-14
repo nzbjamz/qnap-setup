@@ -40,6 +40,7 @@ const MANUAL_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/manual.py'
 const SAB_SCRIPT_PATH = '/share/CACHEDEV1_DATA/scripts/SABPostProcess.py'
 
 const GLOB_ALL = '**/*'
+const GLOB_IGNORE = '**/*.ignore'
 const GLOB_MP4 = '**/*.{mp4,m4v}'
 const GLOB_SRT = '**/*.srt'
 const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
@@ -489,7 +490,13 @@ const renameFiles = async (inpath, outpath) => {
     spawned.stdout.pipe(process.stdout)
     await spawned
   } catch (e) {}
-  return !await exists(outpath)
+
+  if (await exists(outpath)) {
+    const ignored = await glob([GLOB_IGNORE], { 'cwd': outpath })
+    await Promise.all(ignored.map((filepath) => remove(filepath)))
+    return false
+  }
+  return true
 }
 
 const findVideos = async (inpath, date=new Date(NaN)) => {
