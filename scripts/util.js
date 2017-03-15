@@ -76,11 +76,6 @@ const poll = (func, opts={}) => {
   })
 }
 
-const touch = (filepath, date=new Date) => {
-  date = moment(date).toDate()
-  return utimes(filepath, date, date)
-}
-
 module.exports = {
   exists,
   glob,
@@ -90,6 +85,5 @@ module.exports = {
   read,
   remove,
   stat,
-  touch,
   write
 }
