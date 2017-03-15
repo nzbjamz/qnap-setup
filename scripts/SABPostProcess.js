@@ -13,7 +13,7 @@ const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
-const { exists, glob, isFile, move, poll, read, remove, stat, touch, write } = require('./util.js')
+const { exists, glob, isFile, move, poll, read, remove, stat, write } = require('./util.js')
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -446,7 +446,7 @@ const tagVideos = async (files) => {
 
 /*----------------------------------------------------------------------------*/
 
-const getSubsToRename = async (inpath) => {
+const getSubs = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_SRT], { cwd })
   const result = []
@@ -460,19 +460,18 @@ const getSubsToRename = async (inpath) => {
   return result
 }
 
-const touchFiles = async (inpath, date=new Date) => {
-  const filepaths = await isFile(inpath)
-    ? [path.resolve(inpath)]
-    : await glob([GLOB_MP4, GLOB_SRT], { 'cwd': inpath })
-
-  await Promise.all(filepaths.map((filepath) => touch(filepath, date)))
-}
-
-const renameFiles = async (inpath, scanroot) => {
+const renameFiles = async (inpath) => {
   inpath = path.resolve(inpath)
+
+  const category = getCategory(inpath)
   const foldername = path.basename(await isFile(inpath) ? path.dirname(inpath) : inpath)
+  const libroot = category === 'movies' ? COUCH_LIBRARY_ROOT : SONARR_LIBRARY_ROOT
+  const scanroot = category === 'movies' ? COUCH_SCAN_ROOT : SONARR_SCAN_ROOT
   const scanpath = path.resolve(scanroot, foldername)
 
+  if (isPathInside(inpath, libroot)) {
+    return -1
+  }
   const args = argv._.slice()
   args[0] = scanpath
   if (MANUAL_RUN) {
@@ -484,27 +483,43 @@ const renameFiles = async (inpath, scanroot) => {
     // The indexer's report number (not used by SABPostProcess.py).
     args[3] = 0
     // The user-defined category used to signal which manager is notified.
-    args[4] = getCategory(inpath)
+    args[4] = category
     // The group the NZB was posted in (not used by SABPostProcess.py).
     args[5] = ''
     // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
     args[6] = 0
   }
+  const date = new Date
+  await move(inpath, scanpath)
+
+  const vidpaths = await glob([GLOB_MP4], { 'cwd': scanpath })
+  const subs = await getSubs(scanpath)
+
   // Since `[SABNZBD]` is configured with `convert = False`
   // invoking SABPostProcess.py will simply start a renamer scan.
   try {
-    await move(inpath, scanpath)
     const spawned = execa(SAB_SCRIPT_PATH, args)
     spawned.stdout.pipe(process.stdout)
     await spawned
   } catch (e) {}
 
+  let renamed
+  await poll(async () => {
+    renamed = await findVideos(libroot, date)
+    return renamed.length
+  }, { 'frequency': 5000, 'limit': 1000 * 60 * 2.5 })
+
   if (await exists(scanpath)) {
     const ignored = await glob([GLOB_IGNORE], { 'cwd': scanpath })
-    await Promise.all(ignored.map((filepath) => remove(filepath)))
-    return false
+    await Promise.all(ignored.map((ignore) => remove(ignore)))
+    await restoreSubs(vidpaths, subs)
+    return 0
   }
-  return true
+  if (renamed.length) {
+    await restoreSubs(renamed, subs)
+    await cleanupFolder(renamed[0])
+  }
+  return 1
 }
 
 const findVideos = async (inpath, date=new Date(NaN)) => {
@@ -575,8 +590,8 @@ const cleanupFolder = async (inpath) => {
 
 (async () => {
   const inpath = path.resolve(argv._[0] || process.cwd())
-  const basename = path.basename(inpath)
 
+  const basename = path.basename(inpath)
   console.log(`Processing ${ basename }.`)
 
   let { force=[], imdbid, tmdbid, tvdbid } = argv
@@ -600,31 +615,12 @@ const cleanupFolder = async (inpath) => {
     console.log('Adding metadata.')
     await tagVideos(vidsToTag)
   }
-  const touchDate = new Date
-  await touchFiles(inpath, touchDate)
-
-  const category = getCategory(inpath)
-  const libroot = category === 'movies' ? COUCH_LIBRARY_ROOT : SONARR_LIBRARY_ROOT
-  if (!isPathInside(inpath, libroot)) {
-    const scanroot = category === 'movies' ? COUCH_SCAN_ROOT : SONARR_SCAN_ROOT
-    const subs = await getSubsToRename(inpath)
-
-    console.log(`Starting ${ manager } renamer scan.`)
-    if (await renameFiles(inpath, scanroot)) {
-      let filepaths
-      await poll(async () => {
-        filepaths = await findVideos(libroot, touchDate)
-        return filepaths.length
-      }, { 'frequency': 5000, 'limit': 1000 * 60 * 2.5 })
-
-      if (filepaths.length) {
-        await restoreSubs(filepaths, subs)
-        await cleanupFolder(filepaths[0])
-      } else {
-        console.log('Failed to cleanup renamed files.')
-      }
-    }
-    else {
+  console.log('Starting renamer scan.')
+  const status = await renameFiles(inpath)
+  if (status < 1) {
+    if (status) {
+      console.log('Skipped renaming files.')
+    } else {
       console.log('Failed to rename files.')
     }
   }
