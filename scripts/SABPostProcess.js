@@ -451,8 +451,8 @@ const getSubs = async (inpath) => {
   const filepaths = await glob([GLOB_SRT], { cwd })
   const result = []
   await Promise.all(filepaths.map(async (filepath) => {
-    const captions = new Subtitle
     try {
+      const captions = new Subtitle
       captions.parse(await read(filepath, 'utf8'))
       result.push({ filepath, captions })
     } catch (e) {}
