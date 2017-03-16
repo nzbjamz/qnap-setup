@@ -372,7 +372,7 @@ const transcodeVideos = async (files) => {
   }
 }
 
-const removeEmbeddedSubsFromVideos = async (inpath) => {
+const postProcessVideos = async (inpath) => {
   const filepaths = await isFile(inpath)
     ? [path.resolve(inpath)]
     : await glob([GLOB_MP4], { 'cwd': inpath })
@@ -409,7 +409,7 @@ const removeEmbeddedSubsFromVideos = async (inpath) => {
       await ffmpeg(bakpath, args)
       await remove(bakpath)
     } catch (e) {
-      console.log(`Failed to remove subtitles from ${ basename }.`)
+      console.log(`Failed to post process ${ basename }.`)
       await move(bakpath, filepath)
     }
   }
@@ -628,8 +628,8 @@ const cleanupFolder = async (inpath) => {
     console.log('Transcoding videos.')
     await transcodeVideos(vidsToTranscode)
 
-    console.log('Removing embedded subtitles.')
-    await removeEmbeddedSubsFromVideos(inpath)
+    console.log('Removing chapters, embedded subtitles, and extra audio streams.')
+    await postProcessVideos(inpath)
   }
   const vidsToTag = await getVideosToTag(inpath, force.has('tag'))
   if (vidsToTag.length) {
