@@ -481,6 +481,18 @@ const getSubs = async (inpath) => {
   return result
 }
 
+const refreshConfig = async () => {
+  const couchKey = await getCouchKey()
+  const sonarrKey = await getSonarrKey()
+  const config = ini.parse(await read(CONFIG_PATH, 'utf8'))
+  const { CouchPotato, Sonarr } = config
+  if (CouchPotato.apikey !== couchKey || Sonarr.apikey !== sonarrKey) {
+    config.CouchPotato.apikey = couchKey
+    config.Sonarr.apikey = sonarrKey
+    await write(CONFIG_PATH, ini.stringify(config))
+  }
+}
+
 const renameFiles = async (inpath) => {
   inpath = path.resolve(inpath)
 
@@ -519,6 +531,7 @@ const renameFiles = async (inpath) => {
   // Since `[SABNZBD]` is configured with `convert = False`
   // invoking SABPostProcess.py will simply start a renamer scan.
   try {
+    await refreshConfig()
     const spawned = execa(SAB_SCRIPT_PATH, args)
     spawned.stdout.pipe(process.stdout)
     await spawned
