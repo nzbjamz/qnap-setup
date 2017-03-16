@@ -30,9 +30,10 @@ const FFMPEG_ERROR = 'Error converting file, FFMPEG error.'
 const FFMPEG_PATH = '/opt/bin/ffmpeg'
 const FFPROBE_PATH = '/opt/bin/ffprobe'
 
-const COMPLETE_ROOT = '/share/CACHEDEV1_DATA/Download/complete'
-const MULTIMEDIA_ROOT = '/share/CACHEDEV1_DATA/Multimedia'
-const SCRIPTS_ROOT = '/share/CACHEDEV1_DATA/scripts'
+const BASE_PATH = '/share/CACHEDEV1_DATA'
+const COMPLETE_ROOT = path.join(BASE_PATH, 'Download/complete')
+const MULTIMEDIA_ROOT = path.join(BASE_PATH, 'Multimedia')
+const SCRIPTS_ROOT = path.join(BASE_PATH, 'scripts')
 
 const COUCH_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'Movies')
 const COUCH_SCAN_ROOT = path.join(COMPLETE_ROOT, 'movies')
@@ -41,10 +42,10 @@ const SONARR_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'TV')
 const SONARR_SCAN_ROOT = path.join(COMPLETE_ROOT, 'tv')
 
 const CONFIG_PATH = path.join(__dirname, 'autoProcess.ini')
-
-const MANUAL_RUN = argv._.length !== 7
 const MANUAL_SCRIPT_PATH = path.join(SCRIPTS_ROOT, 'manual.py')
 const SAB_SCRIPT_PATH = path.join(SCRIPTS_ROOT, 'SABPostProcess.py')
+
+const MANUAL_RUN = argv._.length !== 7
 
 const GLOB_ALL = '**/*'
 const GLOB_IGNORE = '**/*.ignore'
