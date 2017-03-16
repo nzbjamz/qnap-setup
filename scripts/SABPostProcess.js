@@ -133,10 +133,6 @@ const ffprobe = async (filepath) => {
 
 /*----------------------------------------------------------------------------*/
 
-const cloneDeep = (object) => (
-  JSON.parse(JSON.stringify(object))
-)
-
 const firstOfCodec = (streams, codec) => (
   streams.find(({ codec_name }) => codec_name === codec)
 )
@@ -183,8 +179,16 @@ const getRank = ({ channel_layout }) => (
 
 /*----------------------------------------------------------------------------*/
 
+const cloneDeep = (object) => (
+  JSON.parse(JSON.stringify(object))
+)
+
 const getCategory = (inpath) => (
   argv.category || (isTv(inpath) ? 'tv' : 'movies')
+)
+
+const getCouchKey = async () => (
+  ini.parse(await read(COUCH_CONFIG_PATH, 'utf8')).core.api_key
 )
 
 const getImdbId = async (inpath) => {
@@ -215,20 +219,16 @@ const getImdbId = async (inpath) => {
   return ''
 }
 
+const getSonarrKey = async () => (
+  xml.parse(await read(SONARR_CONFIG_PATH, 'utf8')).Config.ApiKey.text
+)
+
 const getTmdbid = async (inpath) => (
   argv.tmdbid || ''
 )
 
 const getTvdbid = async (inpath) => (
   argv.tvdbid || ''
-)
-
-const getCouchKey = async () => (
-  ini.parse(await read(COUCH_CONFIG_PATH, 'utf8')).core.api_key
-)
-
-const getSonarrKey = async () => (
-  xml.parse(await read(SONARR_CONFIG_PATH, 'utf8')).Config.ApiKey.text
 )
 
 const isTv = (filepath) => (
