@@ -13,7 +13,17 @@ const subscrub = require('./subscrub.js')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
+const { xml2js } = require('xml-js')
 const { exists, glob, isFile, move, poll, read, remove, stat, write } = require('./util.js')
+
+const xml = {
+  'parse': (xml) => xml2js(xml, {
+    'compact': true,
+    'textKey': 'text',
+    'trim': true
+  })
+}
+
 const { argv } = require('yargs')
   .string('category')
   .array('force')
@@ -35,9 +45,11 @@ const COMPLETE_ROOT = path.join(BASE_PATH, 'Download/complete')
 const MULTIMEDIA_ROOT = path.join(BASE_PATH, 'Multimedia')
 const SCRIPTS_ROOT = path.join(BASE_PATH, 'scripts')
 
+const COUCH_CONFIG_PATH = path.join(BASE_PATH, 'COUCH_CONFIG/setting.conf')
 const COUCH_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'Movies')
 const COUCH_SCAN_ROOT = path.join(COMPLETE_ROOT, 'movies')
 
+const SONARR_CONFIG_PATH = path.join(BASE_PATH, 'SONARR_CONFIG/config.xml')
 const SONARR_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'TV')
 const SONARR_SCAN_ROOT = path.join(COMPLETE_ROOT, 'tv')
 
@@ -209,6 +221,14 @@ const getTmdbid = async (inpath) => (
 
 const getTvdbid = async (inpath) => (
   argv.tvdbid || ''
+)
+
+const getCouchKey = async () => (
+  ini.parse(await read(COUCH_CONFIG_PATH, 'utf8')).core.api_key
+)
+
+const getSonarrKey = async () => (
+  xml.parse(await read(SONARR_CONFIG_PATH, 'utf8')).Config.ApiKey.text
 )
 
 const isTv = (filepath) => (
