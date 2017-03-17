@@ -605,14 +605,9 @@ const restoreSrts = async (vidpaths, subs) => {
     const dirname = path.dirname(vidpath)
     const subgroup = subgroups[subnames[length]] || []
     await Promise.all(subgroup.map(async ({ filepath, captions }) => {
-      let { 0:ext } = reSrtEnLang.exec(filepath) || ['']
-      if (ext) {
-        ext = ext.replace('.eng.', '.en.')
-        await Promise.all([
-          write(path.join(dirname, basename + ext), captions.stringify()),
-          remove(path.join(dirname, basename + '.srt'))
-        ])
-      }
+      let { 0:ext } = reSrtEnLang.exec(filepath) || ['.srt']
+      ext = ext.replace('.eng.', '.en.')
+      await write(path.join(dirname, basename + ext), captions.stringify())
     }))
   }
 }
