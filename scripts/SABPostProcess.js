@@ -481,6 +481,16 @@ const getSubs = async (inpath) => {
   return result
 }
 
+const removeSrts = async (inpath) => {
+  const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
+  const filepaths = await glob([GLOB_SRT], { cwd })
+  await Promise.all(filepaths.map(async (filepath) => {
+    try {
+      await trash([filepath])
+    } catch (e) {}
+  }))
+}
+
 const refreshConfig = async () => {
   const couchKey = await getCouchKey()
   const sonarrKey = await getSonarrKey()
@@ -527,6 +537,7 @@ const renameFiles = async (inpath) => {
 
   const vidpaths = await glob([GLOB_MP4], { 'cwd': scanpath })
   const subs = await getSubs(scanpath)
+  await removeSrts(scanpath)
 
   // Since `[SABNZBD]` is configured with `convert = False`
   // invoking SABPostProcess.py will simply start a renamer scan.
