@@ -467,7 +467,7 @@ const tagVideos = async (files) => {
 
 /*----------------------------------------------------------------------------*/
 
-const getSubs = async (inpath) => {
+const getSrts = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
   const filepaths = await glob([GLOB_SRT], { cwd })
   const result = []
@@ -536,7 +536,7 @@ const renameFiles = async (inpath) => {
   await move(inpath, scanpath)
 
   const vidpaths = await glob([GLOB_MP4], { 'cwd': scanpath })
-  const subs = await getSubs(scanpath)
+  const subs = await getSrts(scanpath)
   await removeSrts(scanpath)
 
   // Since `[SABNZBD]` is configured with `convert = False`
@@ -557,11 +557,11 @@ const renameFiles = async (inpath) => {
   if (await exists(scanpath)) {
     const ignored = await glob([GLOB_IGNORE], { 'cwd': scanpath })
     await Promise.all(ignored.map((ignore) => remove(ignore)))
-    await restoreSubs(vidpaths, subs)
+    await restoreSrts(vidpaths, subs)
     return 0
   }
   if (renamed.length) {
-    await restoreSubs(renamed, subs)
+    await restoreSrts(renamed, subs)
     await cleanupFolder(renamed[0])
   }
   return 1
@@ -580,7 +580,7 @@ const findVideos = async (inpath, date=new Date(NaN)) => {
   return result
 }
 
-const restoreSubs = async (vidpaths, subs) => {
+const restoreSrts = async (vidpaths, subs) => {
   vidpaths = vidpaths
     .map((vidpath) => path.resolve(vidpath))
     .sort(naturalCompare)
