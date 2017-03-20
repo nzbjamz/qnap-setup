@@ -537,12 +537,13 @@ const renameFiles = async (inpath) => {
 
   const vidpaths = await glob([GLOB_MP4], { 'cwd': scanpath })
   const subs = await getSrts(scanpath)
+
   await removeSrts(scanpath)
+  await refreshConfig()
 
   // Since `[SABNZBD]` is configured with `convert = False`
   // invoking SABPostProcess.py will simply start a renamer scan.
   try {
-    await refreshConfig()
     const spawned = execa(SAB_SCRIPT_PATH, args)
     spawned.stdout.pipe(process.stdout)
     await spawned
