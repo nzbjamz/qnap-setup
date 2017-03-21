@@ -305,16 +305,28 @@ const getVideosToTranscode = async (inpath, force) => {
     ? [path.resolve(inpath)]
     : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
+  const config = ini.parse(await read(CONFIG_PATH, 'utf8'))
+  const maxBitrate = config.MP4['video-bitrate'] || 0
+  const maxLevel = config.MP4['h264-max-level'] || 0
+
   const result = []
   await Promise.all(filepaths.map(async (filepath) => {
     const ext = path.extname(filepath).toLowerCase()
     const streams = await ffprobe(filepath)
     const auds = getAudioStreams(streams)
+    const vids = getVideoStreams(streams)
     const subs = getSubStreams(streams)
     const stereos = getStereoStreams(auds)
     const aac = firstOfCodec(stereos, 'aac')
+    const h264 = firstOfCodec(vids, 'h264')
 
-    if (force || !(ext === '.mp4' && aac && !subs.length && auds.length < 3)) {
+    let bitrate = NaN
+    let level = NaN
+    if (h264) {
+      bitrate = Math.max(+h264.bit_rate || 0, +h264.max_bit_rate || 0) / 1e3
+      level = h264.level / 10
+    }
+    if (force || !(ext === '.mp4' && aac && h264 && bitrate <= maxBitrate && level <= maxLevel && auds.length < 3 && !subs.length)) {
       result.push({ filepath, streams })
     }
   }))
