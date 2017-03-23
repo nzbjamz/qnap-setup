@@ -654,6 +654,8 @@ const cleanupFolder = async (inpath) => {
   }
   const vidsToTranscode = await getVideosToTranscode(inpath, force.has('transcode'))
   if (vidsToTranscode.length) {
+    await removeSrts(inpath)
+
     console.log('Extracting subtitles.')
     await extractSubsFromVideos(vidsToTranscode)
 
