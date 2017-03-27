@@ -55,7 +55,9 @@
 
 ### Permissions
 
-  * Set Permissions: `No`
+  * Set Permissions: `Yes`
+  * File chmod mask: `0644`
+  * Folder chmod mask: `0755`
 
 ## Indexers
 
