@@ -7,8 +7,6 @@ export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 export PYTHONIOENCODING=UTF-8
 export PYTHONPATH=/opt/lib/python2.7/site-packages
 
-rm -rf /share/HD*_DATA
-
 EOF
 
 echo 'Installing core opkg packages.'

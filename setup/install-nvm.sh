@@ -19,8 +19,9 @@ export NVM_DIR=/share/CACHEDEV1_DATA/.nvm
 
 EOF
 
-# Load the updated .profile.
-source ~/.profile
+# Load nvm.
+export NVM_DIR=/share/CACHEDEV1_DATA/.nvm
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
 # Install Node 7.
 nvm install 7

@@ -8,3 +8,5 @@ basedir=$(dirname "$0")
 "$basedir"/setup/install-ffmpeg.sh
 "$basedir"/setup/install-nvm.sh
 "$basedir"/setup/install-mp4-automator.sh
+
+"$basedir"/setup/finish.sh
