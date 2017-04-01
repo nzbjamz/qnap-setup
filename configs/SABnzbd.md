@@ -60,7 +60,7 @@
   * ✓ Ignore Samples
   * Cleanup List:<br>
     `ass, bat, com, db, exe, gif, htm, html, idx, info, ini, jpg, jpeg, lnk, md5,
-     nfo, nzb, par2, png, scr, sfv, srr, sub, txt, url, website`
+     nfo, nzb, par2, pdf, png, scr, sfv, srr, sub, txt, url, website`
 
 ### Indexing
 
