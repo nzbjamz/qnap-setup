@@ -54,13 +54,14 @@
 
 ### Rename downloaded movies
 
-  * ✓ Remove lower/equal quality copies of a release after downloading.
+  * ✓ Cleanup
   * To: `/share/CACHEDEV1_DATA/Multimedia/Movies/`
   * Folder naming: `<namethe> (<year>)`
   * File naming: `<thename> (<year>) <cd>.<ext>`
+  * ✓ Use TAB 3D
   * ✓ Clean Name
-  * ✓ Cleanup
   * From: `/share/CACHEDEV1_DATA/Download/complete/movies/`
+  * ✓ Remove lower/equal quality copies of a release after downloading.
   * Run Every: `0`
   * Force Every: `0`
   * ✓ Next On_failed
