@@ -25,7 +25,7 @@
   * QMono from QNAP AppCenter Store and `QSonarr_x86_64.qpkg` from the
     [QNAP Club Store](http://qnapclub.eu/)
 
-  * `QSabNZBdPlus_x86_64.qpkg` from the
+  * `Par2cmdline-MT_x86_64.qpkg` and `QSabNZBdPlus_x86_64.qpkg` from the
     [QNAP Club Store](http://qnapclub.eu/)
 
   * Plex Media Server from QNAP AppCenter Store if it’s ≥ 1.4, else from
