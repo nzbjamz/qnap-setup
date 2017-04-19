@@ -24,6 +24,9 @@ You can find your Plex token by viewing the details of an item in your library:
     * ✓ Scan: include external subtitles (metadata/filesystem, don't download if existing)
     * ✓ Normalize subtitle encoding to UTF-8
     * ✓ Store subtitles next to media files (instead of metadata)
+    * On media playback search for missing subtitles (refresh item):<br>
+      `hybrid: current item or next episode`
+    * Item age to be considered recent: `6 weeks`
     * ✗ Automatically delete leftover/unused (externally saved) subtitles
     * ✓ Scheduler: Overwrite manually selected subtitles when better found
     * Call this executable upon successful subtitle download:<br>
