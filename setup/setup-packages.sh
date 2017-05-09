@@ -33,6 +33,10 @@ rm /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/par2create
 rm /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/par2repair
 rm /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/par2verify
 
+# Relink ps from QSabNZBdPlus to /opt/bin/ps
+cd /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/bin/
+ln -sf /opt/bin/ps ps
+
 echo 'Updating CouchPotato.'
 
 cd /share/CACHEDEV1_DATA/.qpkg/QCouchPotato/
