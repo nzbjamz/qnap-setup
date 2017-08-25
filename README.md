@@ -28,8 +28,8 @@
   * `Par2cmdline-MT_x86_64.qpkg` and `QSabNZBdPlus_x86_64.qpkg` from the
     [QNAP Club Store](http://qnapclub.eu/)
 
-  * Plex Media Server from QNAP AppCenter Store if it’s ≥ 1.6, else from
-    the [Plex forums](https://forums.plex.tv/discussion/250946/plex-media-server-hardware-transcoding-preview-3-1-6-0-3720/p1)
+  * Plex Media Server from QNAP AppCenter Store if it’s ≥ 1.8, else from
+    the [Plex forums](https://forums.plex.tv/discussion/282845/plex-media-server-hardware-transcoding-preview-4-1-8-1-4140/p1)
 
 1. From QTS stop QSabNZBdPlus, QCouchPotato, and QSonarr packages.
 
