@@ -49,7 +49,6 @@ cd /share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/
 rm -rf SABnzbd
 git clone --quiet --depth=1 --branch=master git://github.com/sabnzbd/sabnzbd.git SABnzbd > /dev/null 2>&1
 
-
 echo 'Adding COUCH_CONFIG folder.'
 
 cd /share/CACHEDEV1_DATA/.qpkg/QCouchPotato/CouchPotatoServer-master/
