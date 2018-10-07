@@ -3,8 +3,10 @@
 
 const path = require('path')
 const Subtitle = require('subtitle')
-const { glob, isFile, read, remove, stat, write } = require('./util.js')
+const { glob, isFile, read, remove, write } = require('./util.js')
 const { argv } = require('yargs')
+
+const SEARCH_LIMIT = 50
 
 const reAddress = /[-\w]+\.(?:com|org|net)\b/i
 const reContact = /[-\w]+\[[-\w]+\][-\w]+/
@@ -68,23 +70,39 @@ const subscrub = async (inpath) => {
       console.log(`Failed to parse ${ basename }.`)
       return
     }
+
     let { _subtitles } = captions
-    const { length } = _subtitles
+
+    const originalLength = _subtitles.length
 
     // Remove empty captions.
     const empties = []
     _subtitles = _subtitles.filter((sub) => sub.text || void empties.push(sub))
 
     // Remove bogus captions.
+    const upTo = Math.min(_subtitles.length, SEARCH_LIMIT)
     const removed = []
-    if (isBogus(_subtitles[0])) {
-      removed.push(_subtitles.shift())
+
+    let i = -1
+
+    while (++i <= upTo) {
+      if (isBogus(_subtitles[i])) {
+        removed.push(..._subtitles.splice(i, 1))
+      }
     }
-    if (isBogus(_subtitles[_subtitles.length - 1])) {
-      removed.push(_subtitles.pop())
+
+    i = _subtitles.length
+
+    const backTo = Math.max(0, i - SEARCH_LIMIT)
+
+    while (--i >= backTo) {
+      if (isBogus(_subtitles[i])) {
+        removed.push(..._subtitles.splice(i, 1))
+      }
     }
+
     // Commit changes.
-    if (_subtitles.length !== length) {
+    if (_subtitles.length !== originalLength) {
       console.log(`Scrubbing ${ basename }.`)
       if (empties.length) {
         console.log('Removing empty captions.')
