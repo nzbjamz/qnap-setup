@@ -5,9 +5,9 @@ basedir=$(dirname "$0")
 echo 'Installing mp4_automator.'
 
 # Install sickbeard_mp4_automator prerequesites.
-opkg remove python-light --force-removal-of-dependent-packages
-opkg remove python-base --force-removal-of-dependent-packages
-opkg install python-dev python-pip
+# opkg remove python-light --force-remove --force-removal-of-dependent-packages
+# opkg remove python-base --force-remove --force-removal-of-dependent-packages
+# opkg install python-dev python-pip
 opkg install gcc python-cffi
 pip install requests
 pip install 'requests[security]'
