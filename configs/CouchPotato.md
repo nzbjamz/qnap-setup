@@ -27,8 +27,8 @@
 ### Global filters
 
   * Ignored:<br>
-    `china, danish, dksubs, dubbed, dutch, french, german, HC, HDChina, italian,
-     korean, korsub, spanish, swedish, swesub, truefrench, vain`
+    `china, danish, dksubs, dubbed, dutch, french, german, h.265, h265, HC,
+     HDChina, italian, korean, korsub, spanish, swedish, swesub, truefrench, vain`
 
 ## Qualities
 

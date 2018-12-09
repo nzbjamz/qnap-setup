@@ -14,7 +14,7 @@
    In the QNAP AppCenter install
 
   * `Entware-ng.qpkg` from
-    [entware.net](https://github.com/Entware-ng/Entware-ng/wiki/Install-on-QNAP-NAS)
+    [entware.net](https://github.com/Entware/Entware-ng/wiki/Install-on-QNAP-NAS)
 
   * `QPerl_x86_64.qpkg` and `CACert_x86_64.qpkg` from the
     [QNAP Club Store](http://qnapclub.eu/)

@@ -45,10 +45,11 @@
 
   * ✓ Check before download
   * ✓ Abort jobs that cannot be completed
-  * Detect Duplicate Downloads: `Discard`
-  * Detect duplicate episodes in series: `Discard`
+  * Detect Duplicate Downloads: `Tag job`
+  * Detect duplicate episodes in series: `Tag job`
   * Action when encrypted RAR is downloaded: `Abort`
   * Action when unwanted extension detected: `Off`
+  * ✓ Direct Unpack
 
 ### Post processing
 
