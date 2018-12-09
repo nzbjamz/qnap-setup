@@ -402,21 +402,25 @@ const postProcessVideos = async (inpath) => {
     const first = firstOfCodec(stereos, 'aac') || getDefaultStream(auds) || stereos[0]
 
     const layout = getChannelLayout(first)
-    const second = auds.find((aud) => getChannelLayout(aud) !== layout)
+    const second = auds.find((aud) => getChannelLayout(aud) !== layout) || first
 
+    const dispositions = ['-disposition:a:0', 'default']
     const maps = []
+
     if (first) {
-      maps.push('-map', `0:a:${ first.index }`)
+      maps.push('-map', `0:a:${ first.index }`, `-codec:a:${ first.index }`, 'copy')
     }
     if (second) {
+      dispositions.push('-disposition:a:1', '0')
       maps.push('-map', `0:a:${ second.index }`, `-codec:a:${ second.index }`, 'ac3')
     }
     if (!maps.length) {
       maps.push('-map', '0:a')
     }
+
     await move(filepath, bakpath)
     try {
-      const args = ['-codec', 'copy', '-sn', '-map_chapters', '-1', '-map', '0:v', ...maps, filepath]
+      const args = ['-codec', 'copy', '-sn', '-map_chapters', '-1', '-map', '0:v', ...maps, ...dispositions, filepath]
       await ffmpeg(bakpath, args)
       await remove(bakpath)
     } catch (e) {
