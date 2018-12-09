@@ -13,7 +13,6 @@ const exists = pify((a, b) => fs.exists(a, (c) => b(null, c)))
 const read = pify(fs.readFile)
 const remove = pify(fs.remove)
 const stat = pify(fs.stat)
-const utimes = pify(fs.utimes)
 const write = pify(fs.outputFile)
 
 const glob = async (patterns, opts) => {
