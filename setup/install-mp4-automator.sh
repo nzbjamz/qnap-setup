@@ -15,7 +15,7 @@ pip install requests-cache
 pip install babelfish
 pip install 'subliminal<2'
 /usr/bin/yes | pip uninstall stevedore
-pip install stevedore==1.19.1
+pip install --trusted-host pypi.python.org stevedore==1.19.1
 pip install qtfaststart
 
 cd /share/CACHEDEV1_DATA/
