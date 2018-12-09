@@ -359,7 +359,7 @@ const transcodeVideo = async (filepath, opts={}) => {
   } catch (e) {
     if (opts.MP4.ffmpeg === FFMPEG_PATH) {
       const basename = path.basename(filepath)
-      console.log(`Failed to transcode ${ basename }.`)
+      console.log(`Failed to transcode ${ basename }.`, e)
       return
     }
     // Fallback to non-VAAPI accelerated ffmpeg.
