@@ -69,7 +69,7 @@ const reTv = /^tv$/i
 const reTvSeason = /\bseason \d+\b/i
 const reTvSeasonEpisode = /\bs\d+e\d+\b/i
 
-const dispositionMap = new Map(Object.entries({
+const subDispositionMap = new Map(Object.entries({
   'forced': 'forced',
   'hearing_impaired': 'hi'
 }))
@@ -254,7 +254,7 @@ const extractSubs = async (file, sublang) => {
       const labels = Object
         .keys(disposition)
         .filter((key) => disposition[key])
-        .map((key) => dispositionMap.get(key))
+        .map((key) => subDispositionMap.get(key))
         .filter((key) => key)
 
       const subname = [basename, lang, ...labels, 'srt'].join('.')
