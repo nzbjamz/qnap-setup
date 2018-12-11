@@ -70,6 +70,10 @@
     * API Key: `<INDEXER_API_KEY>`
     * Categories: `5030,5040`
 
+ * Restrictions
+    * Must Not Contain:<br>
+      `h.265, h265, PASSMOVIES.RU`
+
 ### Options
 
   * Retention: `0`
