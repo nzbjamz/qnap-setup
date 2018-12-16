@@ -6,7 +6,7 @@ const Subtitle = require('subtitle')
 const { glob, isFile, read, remove, write } = require('./util.js')
 const { argv } = require('yargs')
 
-const SEARCH_LIMIT = 25
+const SEARCH_LIMIT = 5
 
 const reAddress = /[-\w]+\.(?:com|org|net)\b/i
 const reContact = /[-\w]+\[[-\w]+\][-\w]+/
@@ -16,18 +16,14 @@ const reKeywords = RegExp('\\b(?:' + [
   'captioning',
   'captions',
   'downloaded',
-  'edit',
   'edited',
   'encoded',
-  'fix',
-  'review',
   'reviewed',
   'ripp',
   'sub',
   'subs',
   'subtitle',
   'subtitles',
-  'sync',
   'synced',
   'synchronization',
   'synchronized',
