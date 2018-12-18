@@ -6,7 +6,7 @@ const Subtitle = require('subtitle')
 const { glob, isFile, read, remove, write } = require('./util.js')
 const { argv } = require('yargs')
 
-const SEARCH_LIMIT = 5
+const SEARCH_LIMIT = 10
 
 const reAddress = /[-\w]+\.(?:com|org|net)\b/i
 const reContact = /[-\w]+\[[-\w]+\][-\w]+/
