@@ -3,9 +3,9 @@
 echo 'Adding environment variables.'
 
 cat << EOF >> /opt/etc/profile
-export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+export CURL_CA_BUNDLE=/etc/ssl/ca-bundle.crt
+export REQUESTS_CA_BUNDLE=/etc/ssl/ca-bundle.crt
+export SSL_CERT_FILE=/etc/ssl/ca-bundle.crt
 export PYTHONIOENCODING=UTF-8
 export PYTHONPATH=/opt/lib/python2.7/site-packages
 
