@@ -69,3 +69,9 @@
   * ✓ Automatic Feedback
   * Server address: `<INDEXER_API_URL>`
   * API Key: `<INDEXER_API_KEY>`
+
+## Special
+
+### Switches
+
+  * ✓ require_modern_tls
