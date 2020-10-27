@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 'use strict'
 
+const fs = require('fs-extra')
 const path = require('path')
 const Subtitle = require('subtitle')
-const { glob, isFile, read, remove, write } = require('./util.js')
+const { glob, isFile } = require('./util.js')
 const { argv } = require('yargs')
 
 const SEARCH_LIMIT = 10
@@ -58,29 +59,24 @@ const subscrub = async (inpath) => {
 
   await Promise.all(filepaths.map(async (filepath) => {
     const basename = path.basename(filepath)
-    const captions = new Subtitle
+    const captions = new Subtitle()
 
     try {
-      captions.parse(await read(filepath, 'utf8'))
-    } catch (e) {
-      console.log(`Failed to parse ${ basename }.`)
+      captions.parse(await fs.readFile(filepath, 'utf8'))
+    } catch {
+      console.log('Failed to parse ' + basename + '.')
       return
     }
-
     let { _subtitles } = captions
-
     const originalLength = _subtitles.length
-
     // Remove empty captions.
     const empties = []
     _subtitles = _subtitles.filter((sub) => sub.text || void empties.push(sub))
-
     // Remove bogus captions.
     const upTo = Math.min(_subtitles.length, SEARCH_LIMIT)
     const removed = []
 
     let i = -1
-
     while (++i <= upTo) {
       if (isBogus(_subtitles[i])) {
         removed.push(..._subtitles.splice(i, 1))
@@ -99,22 +95,22 @@ const subscrub = async (inpath) => {
 
     // Commit changes.
     if (_subtitles.length !== originalLength) {
-      console.log(`Scrubbing ${ basename }.`)
+      console.log('Scrubbing ' + basename + '.')
       if (empties.length) {
         console.log('Removing empty captions.')
       }
       removed.forEach(({ text }) => {
         text = text.replace(/\n/g, ' ')
-        console.log(`Removing caption:\n${ text }`)
+        console.log('Removing caption:\n' + text)
       })
       if (_subtitles.length) {
         // Reindex captions.
         _subtitles.forEach((sub, index) => sub.index = index + 1)
         captions._subtitles = _subtitles
-        await write(filepath, captions.stringify())
+        await fs.outputFile(filepath, captions.stringify())
       } else {
-        console.log(`Removing empty ${ basename }.`)
-        await remove(filepath)
+        console.log('Removing empty ' + basename + '.')
+        await fs.remove(filepath)
       }
     }
   }))
@@ -126,7 +122,7 @@ const subscrub = async (inpath) => {
   if (require.main === module) {
     const inpath = path.resolve(argv._[0] || process.cwd())
     const basename = path.basename(inpath)
-    console.log(`Processing ${ basename }.`)
+    console.log('Processing ' + basename + '.')
     await subscrub(inpath)
   }
 })()

@@ -1,13 +1,16 @@
-# SABnzbd
+# SABnzbd3
+
+* Show advanced: `On`
 
 ## General
 
-### SABnzbd Web Server
+### Web Server
 
-  * ✓ Enable HTTPS
+  * ✗ Enable HTTPS
 
 ### Switches
 
+  * ✗ Launch Browser on Startup
   * ✓ HTTPS certificate verification
 
 ### Tuning
@@ -32,6 +35,30 @@
   * Advanced
     * Certificate verification: `Strict`
 
+### Server One - ssl-us Subdomain
+
+ * Connections: `4`
+ * Priority: `0`
+ * Retention Time: `3000`
+
+### Server One - ssl Subdomain
+
+ * Connections: `4`
+ * Priority: `1`
+ * Retention Time: `3000`
+
+### Server One - ssl-eu Subdomain
+
+ * Connections: `4`
+ * Priority: `2`
+ * Retention Time: `3000`
+
+ ### Server Two
+
+ * Connections: `8`
+ * Priority: `3`
+ * Retention Time: `2500`
+
 ## Categories
 
 |Category |Priority |Processing |Script            |Folder/Path |Indexer Categories / Groups |
@@ -43,7 +70,6 @@
 
 ### Queue
 
-  * ✓ Check before download
   * ✓ Abort jobs that cannot be completed
   * Detect Duplicate Downloads: `Tag job`
   * Detect duplicate episodes in series: `Tag job`
@@ -53,21 +79,17 @@
 
 ### Post processing
 
-  * ✓ Enable Quick Check
   * ✓ Enable SFV-based checks
   * ✓ Post-Process Only Verified Jobs
   * ✓ Enable recursive unpacking
   * ✓ Ignore any folders inside archives
   * ✓ Ignore Samples
   * Cleanup List:<br>
-    `ass, bat, com, db, exe, gif, htm, html, idx, info, ini, jpg, jpeg, lnk, md5,
-     nfo, nzb, par2, pdf, png, scr, sfv, srr, sub, txt, url, website`
+    `ass, bat, com, db, exe, gif, htm, html, idx, info, ini, jpg, jpeg, lnk, md5, nfo, nzb, par2, pdf, png, scr, sfv, srr, sub, txt, url, website`
 
 ### Indexing
 
   * ✓ Enable Indexer Integration
-  * ✓ Automatic Feedback
-  * Server address: `<INDEXER_API_URL>`
   * API Key: `<INDEXER_API_KEY>`
 
 ## Special

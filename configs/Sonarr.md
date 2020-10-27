@@ -88,7 +88,7 @@
     * Port: `<DOWNLOADER_PORT>`
     * API Key: `<DOWNLOADER_API_KEY>`
     * Category: `tv`
-    * Use SSL: `Yes`
+    * Use SSL: `No`
 
 ### Completed Download Handling
 

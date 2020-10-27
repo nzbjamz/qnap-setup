@@ -7,7 +7,9 @@ export CURL_CA_BUNDLE=/etc/ssl/ca-bundle.crt
 export REQUESTS_CA_BUNDLE=/etc/ssl/ca-bundle.crt
 export SSL_CERT_FILE=/etc/ssl/ca-bundle.crt
 export PYTHONIOENCODING=UTF-8
-export PYTHONPATH=/opt/lib/python2.7/site-packages
+export PYTHONPATH=/opt/QSabNZBd3/lib/python3.7/site-packages
+export LIBVA_DRIVERS_PATH=/opt/QMultimedia/lib
+export LIBVA_DRIVER_NAME=iHD
 
 EOF
 

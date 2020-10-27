@@ -1,19 +1,13 @@
 'use strict'
 
 const fs = require('fs-extra')
+const get = require('lodash/get')
 const globby = require('globby')
 const moment = require('moment')
 const naturalCompare = require('string-natural-compare')
 const path = require('path')
-const pify = require('pify')
 
 /*----------------------------------------------------------------------------*/
-
-const exists = pify((a, b) => fs.exists(a, (c) => b(null, c)))
-const read = pify(fs.readFile)
-const remove = pify(fs.remove)
-const stat = pify(fs.stat)
-const write = pify(fs.outputFile)
 
 const glob = async (patterns, opts) => {
   patterns = Array.isArray(patterns) ? patterns : [patterns]
@@ -31,28 +25,35 @@ const glob = async (patterns, opts) => {
   opts.nosort = true
   try {
     const result = await globby(patterns, opts)
-    return nosort ? result : result.sort(nocase ? naturalCompare.i : naturalCompare)
-  } catch (e) {}
+    if (nosort) {
+      return result
+    }
+    return result.sort(nocase ? naturalCompare.i : naturalCompare)
+  } catch {}
   return []
 }
 
-const isFile = async (filepath) => (
-  (await stat(filepath)).isFile()
-)
+const isFile = async (filepath) => {
+  try {
+    return (await fs.stat(filepath)).isFile()
+  } catch {}
+  return false
+}
 
 const move = (() => {
-  const _move = pify(fs.move)
+  const { move: _move } = fs
   return async (source, dest, opts={}) => {
     source = path.resolve(source)
     dest = path.resolve(dest)
     if (source !== dest) {
+      opts = Object.assign({ 'overwrite': true }, opts)
       try {
         await _move(source, dest, opts)
       } catch (e) {
-        if (e.code !== 'ENOENT') {
+        if (get(e, 'code') !== 'ENOENT') {
           throw e
         }
-        await remove(source)
+        await fs.remove(source)
       }
     }
   }
@@ -63,9 +64,12 @@ const poll = (func, opts={}) => {
   limit = moment().add(limit, 'ms')
   return new Promise((resolve) => {
     const poller = async () => {
-      const result = await func()
+      let ended = false
+      await func(() => {
+        ended = true
+      })
       const timedOut = moment().isAfter(limit)
-      if (result || timedOut) {
+      if (ended || timedOut) {
         resolve(!timedOut)
       } else {
         setTimeout(poller, frequency)
@@ -76,13 +80,8 @@ const poll = (func, opts={}) => {
 }
 
 module.exports = {
-  exists,
   glob,
   isFile,
   move,
-  poll,
-  read,
-  remove,
-  stat,
-  write
+  poll
 }

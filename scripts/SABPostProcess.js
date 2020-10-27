@@ -3,17 +3,20 @@
 
 const defaultsDeep = require('lodash/defaultsDeep')
 const execa = require('execa')
+const fs = require('fs-extra')
+const get = require('lodash/get')
 const imdb = require('imdb-search')
 const ini = require('ini')
 const isPathInside = require('path-is-inside')
 const moment = require('moment')
 const naturalCompare = require('string-natural-compare')
 const path = require('path')
+const set = require('lodash/set')
 const Subtitle = require('subtitle')
 const tempWrite = require('temp-write')
 const trash = require('trash')
 const { xml2js } = require('xml-js')
-const { exists, glob, isFile, move, poll, read, remove, stat, write } = require('./util.js')
+const { glob, isFile, move, poll } = require('./util.js')
 
 const xml = {
   'parse': (xml) => xml2js(xml, {
@@ -37,7 +40,7 @@ const { argv } = require('yargs')
 
 const FFMPEG_ERROR = 'Error converting file, FFMPEG error.'
 const FFMPEG_PATH = '/opt/bin/ffmpeg'
-const FFPROBE_PATH = '/opt/bin/ffprobe'
+const FFPROBE_PATH = '/opt/QMultimedia/bin/ffprobe'
 
 const BASE_PATH = '/share/CACHEDEV1_DATA'
 const COMPLETE_ROOT = path.join(BASE_PATH, 'Download/complete')
@@ -52,7 +55,7 @@ const SONARR_CONFIG_PATH = path.join(BASE_PATH, 'SONARR_CONFIG/config.xml')
 const SONARR_LIBRARY_ROOT = path.join(MULTIMEDIA_ROOT, 'TV')
 const SONARR_SCAN_ROOT = path.join(COMPLETE_ROOT, 'tv')
 
-const CONFIG_PATH = path.join(__dirname, 'autoProcess.ini')
+const AUTO_PROCESS_INI_PATH = path.join(__dirname, 'config/autoProcess.ini')
 const MANUAL_SCRIPT_PATH = path.join(SCRIPTS_ROOT, 'manual.py')
 const SAB_SCRIPT_PATH = path.join(SCRIPTS_ROOT, 'SABPostProcess.py')
 
@@ -63,6 +66,10 @@ const GLOB_IGNORE = '**/*.ignore'
 const GLOB_MP4 = '**/*.{mp4,m4v}'
 const GLOB_SRT = '**/*.srt'
 const GLOB_VIDEO = '**/*.{avi,mkv,mov,mp4,mpg,mts,ts,vob}'
+
+let AUTO_PROCESS_CONFIG
+let COUCH_CONFIG
+let SONARR_CONFIG
 
 const reSrtEnLang = /\.eng?\.(?:\w+\.)*?srt$/i
 const reTv = /^tv$/i
@@ -126,7 +133,7 @@ const ffprobe = async (filepath) => {
     const params = ['-loglevel', 'quiet', '-print_format', 'json', '-show_streams', filepath]
     const { stdout } = await execa(FFPROBE_PATH, params)
     return JSON.parse(stdout).streams
-  } catch (e) {}
+  } catch {}
   return []
 }
 
@@ -186,9 +193,17 @@ const getCategory = (inpath) => (
   argv.category || (isTv(inpath) ? 'tv' : 'movies')
 )
 
-const getCouchKey = async () => (
-  ini.parse(await read(COUCH_CONFIG_PATH, 'utf8')).core.api_key
-)
+const getCouchConfig = async () => {
+  if (COUCH_CONFIG === undefined) {
+    COUCH_CONFIG = ini.parse(await fs.readFile(COUCH_CONFIG_PATH, 'utf8'))
+  }
+  return COUCH_CONFIG
+}
+
+const getCouchKey = async () => {
+  const config = await getCouchConfig()
+  return get(config, 'core.api_key', '')
+}
 
 const getImdbId = async (inpath) => {
   const { imdbid } = argv
@@ -213,21 +228,29 @@ const getImdbId = async (inpath) => {
     const year = parts[3]
     try {
       return (await imdb.search(title, year, type))[0].imdb
-    } catch (e) {}
+    } catch {}
   }
   return ''
 }
 
-const getSonarrKey = async () => (
-  xml.parse(await read(SONARR_CONFIG_PATH, 'utf8')).Config.ApiKey.text
+const getSonarrConfig = async () => {
+  if (SONARR_CONFIG === undefined) {
+    SONARR_CONFIG = xml.parse(await fs.readFile(SONARR_CONFIG_PATH, 'utf8'))
+  }
+  return SONARR_CONFIG
+}
+
+const getSonarrKey = async () => {
+  const config = await getSonarrConfig()
+  return get(config, 'Config.ApiKey.text', '')
+}
+
+const getTmdbid = async () => (
+  get(argv, 'tmdbid', '')
 )
 
-const getTmdbid = async (inpath) => (
-  argv.tmdbid || ''
-)
-
-const getTvdbid = async (inpath) => (
-  argv.tvdbid || ''
+const getTvdbid = async () => (
+  get(argv, 'tvdbid', '')
 )
 
 const isTv = (filepath) => (
@@ -247,7 +270,7 @@ const extractSubs = async (file, sublang) => {
   const basename = path.basename(filepath, path.extname(filepath))
   const dirname = path.dirname(filepath)
   const subs = getSubStreams(streams)
-  const seen = new Map
+  const seen = new Map()
   const maps = subs.reduce((maps, sub) => {
     const { disposition, lang } = sub
     if (disposition.default || sublang == null || lang === sublang) {
@@ -261,26 +284,25 @@ const extractSubs = async (file, sublang) => {
       if (!seen.has(subname)) {
         const subpath = path.join(dirname, subname)
         seen.set(subname, subpath)
-        maps.push('-map', `0:s:${ sub.index }`, subpath)
+        maps.push('-map', '0:s:' + sub.index, subpath)
       }
     }
     return maps
   }, [])
 
-  if (!maps.length) {
-    return
-  }
-  try {
-    await ffmpeg(filepath, ['-vn', '-an', '-scodec', 'srt', ...maps])
-  } catch (e) {
-    await Promise.all([...seen.values()].map((subpath) => remove(subpath)))
-    throw e
+  if (maps.length) {
+    try {
+      await ffmpeg(filepath, ['-vn', '-an', '-scodec', 'srt', ...maps])
+    } catch (e) {
+      await Promise.all([...seen.values()].map((subpath) => fs.remove(subpath)))
+      throw e
+    }
   }
 }
 
 const transcode = async (filepath, args, opts) => {
-  const config = defaultsDeep({}, opts, ini.parse(await read(CONFIG_PATH, 'utf8')))
-  const params = ['--auto', '--convertmp4', '--config', await toConfigPath(config), '--input', filepath, ...args]
+  const config = defaultsDeep({}, opts, await getAutoProcessConfig())
+  const params = ['--auto', '--processsameextensions', '--config', await toConfigPath(config), '--input', filepath, ...args]
   const spawned = execa(MANUAL_SCRIPT_PATH, params)
   const promise = new Promise((resolve, reject) => {
     spawned
@@ -304,9 +326,9 @@ const getVideosToTranscode = async (inpath, force) => {
     ? [path.resolve(inpath)]
     : await glob([GLOB_VIDEO], { 'cwd': inpath })
 
-  const config = ini.parse(await read(CONFIG_PATH, 'utf8'))
-  const maxBitrate = config.MP4['video-bitrate'] || 0
-  const maxLevel = config.MP4['h264-max-level'] || 0
+  const config = await getAutoProcessConfig()
+  const maxBitrate = get(config, 'Video["max-bitrate"]', 0)
+  const maxLevel = get(config, 'Video["max-level"]', 0)
 
   const result = []
   await Promise.all(filepaths.map(async (filepath) => {
@@ -325,7 +347,18 @@ const getVideosToTranscode = async (inpath, force) => {
       bitrate = Math.max(+h264.bit_rate || 0, +h264.max_bit_rate || 0) / 1e3
       level = h264.level / 10
     }
-    if (force || !(ext === '.mp4' && aac && h264 && bitrate <= maxBitrate && level <= maxLevel && auds.length < 3 && !subs.length)) {
+    if (
+        force ||
+        !(
+          ext === '.mp4' &&
+          aac &&
+          h264 &&
+          bitrate <= maxBitrate &&
+          level <= maxLevel &&
+          auds.length < 3 &&
+          !subs.length
+        )
+      ) {
       result.push({ filepath, streams })
     }
   }))
@@ -336,9 +369,9 @@ const extractSubsFromVideos = async (files) => {
   await Promise.all(files.map(async (file) => {
     try {
       await extractSubs(file, 'en')
-    } catch (e) {
+    } catch {
       const basename = path.basename(file.filepath)
-      console.log(`Failed to extract subtitles from ${ basename }.`)
+      console.log('Failed to extract subtitles from ' + basename + '.')
     }
   }))
 }
@@ -351,20 +384,22 @@ const transcodeVideo = async (filepath, opts={}) => {
     }
     const { stdout } = await spawned
     if (stdout.includes(FFMPEG_ERROR)) {
-      throw new Error
+      throw new Error()
     }
     if (!MANUAL_RUN) {
       console.log(stdout)
     }
   } catch (e) {
-    if (opts.MP4.ffmpeg === FFMPEG_PATH) {
+    if (get(opts, 'Converter.ffmpeg') === FFMPEG_PATH) {
       const basename = path.basename(filepath)
-      console.log(`Failed to transcode ${ basename }.`, e)
+      console.log('Failed to transcode ' + basename + '.', e)
       return
     }
     // Fallback to non-VAAPI accelerated ffmpeg.
-    opts.MP4.ffmpeg = FFMPEG_PATH
-    opts.MP4['video-codec'] = 'h264,x264'
+    set(opts, 'Converter.ffmpeg', FFMPEG_PATH)
+    //set(opts, 'Converter.hwaccels', '')
+    //set(opts, 'Converter["hwaccel-decoders"]', '')
+    set(opts, 'Video.codec', 'h264,x264')
     await transcodeVideo(filepath, opts)
   }
 }
@@ -374,10 +409,14 @@ const transcodeVideos = async (files) => {
     const streams = await ffprobe(filepath)
     const auds = getAudioStreams(streams)
     const flac = firstOfCodec(auds, 'flac')
-    const opts = { 'MP4': { 'ios-audio': 'True', 'relocate_moov': 'False' } }
+    const opts = {
+      'Metadata': {
+        'relocate_moov': 'False'
+      }
+    }
     if (flac) {
-      opts.MP4['video-codec'] = 'h264,x264'
-      opts.MP4.ffmpeg = FFMPEG_PATH
+      set(opts, 'Video.codec', 'h264,x264')
+      set(opts, 'Converter.ffmpeg', FFMPEG_PATH)
     }
     await transcodeVideo(filepath, opts)
   }
@@ -391,7 +430,7 @@ const postProcessVideos = async (inpath) => {
   for (const filepath of filepaths) {
     const basename = path.basename(filepath)
     const dirname = path.dirname(filepath)
-    const bakpath = path.join(dirname, `${ basename }.original`)
+    const bakpath = path.join(dirname, basename + '.original')
 
     // Stable sort audio streams from highest to lowest ranked.
     const streams = await ffprobe(filepath)
@@ -408,11 +447,11 @@ const postProcessVideos = async (inpath) => {
     const maps = []
 
     if (first) {
-      maps.push('-map', `0:a:${ first.index }`, `-codec:a:${ first.index }`, 'copy')
+      maps.push('-map', '0:a:' + first.index, '-codec:a:' + first.index, 'copy')
     }
     if (second) {
       dispositions.push('-disposition:a:1', '0')
-      maps.push('-map', `0:a:${ second.index }`, `-codec:a:${ second.index }`, 'ac3')
+      maps.push('-map', '0:a:' + second.index, '-codec:a:' + second.index, 'ac3')
     }
     if (!maps.length) {
       maps.push('-map', '0:a')
@@ -422,9 +461,9 @@ const postProcessVideos = async (inpath) => {
     try {
       const args = ['-codec', 'copy', '-sn', '-map_chapters', '-1', '-map', '0:v', ...maps, ...dispositions, filepath]
       await ffmpeg(bakpath, args)
-      await remove(bakpath)
-    } catch (e) {
-      console.log(`Failed to post process ${ basename }.`)
+      await fs.remove(bakpath)
+    } catch {
+      console.log('Failed to post process ' + basename + '.')
       await move(bakpath, filepath)
     }
   }
@@ -473,14 +512,21 @@ const tagVideos = async (files) => {
       if (!MANUAL_RUN) {
         console.log(stdout)
       }
-    } catch (e) {
+    } catch {
       const basename = path.basename(filepath)
-      console.log(`Failed to tag ${ basename }.`)
+      console.log('Failed to tag ' + basename + '.')
     }
   }
 }
 
 /*----------------------------------------------------------------------------*/
+
+const getAutoProcessConfig = async () => {
+  if (AUTO_PROCESS_CONFIG === undefined) {
+    AUTO_PROCESS_CONFIG = await refreshAutoProcessConfig()
+  }
+  return AUTO_PROCESS_CONFIG
+}
 
 const getSrts = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
@@ -488,10 +534,10 @@ const getSrts = async (inpath) => {
   const result = []
   await Promise.all(filepaths.map(async (filepath) => {
     try {
-      const captions = new Subtitle
-      captions.parse(await read(filepath, 'utf8'))
+      const captions = new Subtitle()
+      captions.parse(await fs.readFile(filepath, 'utf8'))
       result.push({ filepath, captions })
-    } catch (e) {}
+    } catch {}
   }))
   return result
 }
@@ -502,20 +548,23 @@ const removeSrts = async (inpath) => {
   await Promise.all(filepaths.map(async (filepath) => {
     try {
       await trash([filepath])
-    } catch (e) {}
+    } catch {}
   }))
 }
 
-const refreshConfig = async () => {
+const refreshAutoProcessConfig = async () => {
   const couchKey = await getCouchKey()
   const sonarrKey = await getSonarrKey()
-  const config = ini.parse(await read(CONFIG_PATH, 'utf8'))
-  const { CouchPotato, Sonarr } = config
-  if (CouchPotato.apikey !== couchKey || Sonarr.apikey !== sonarrKey) {
-    config.CouchPotato.apikey = couchKey
-    config.Sonarr.apikey = sonarrKey
-    await write(CONFIG_PATH, ini.stringify(config))
+  const config = ini.parse(await fs.readFile(AUTO_PROCESS_INI_PATH, 'utf8'))
+  if (
+      get(config, 'CouchPotato.apikey') !== couchKey ||
+      get(config, 'Sonarr.apikey') !== sonarrKey
+    ) {
+    set(config, 'CouchPotato.apikey', couchKey)
+    set(config, 'Sonarr.apikey', sonarrKey)
+    await fs.outputFile(AUTO_PROCESS_INI_PATH, ini.stringify(config))
   }
+  return config
 }
 
 const renameFiles = async (inpath) => {
@@ -534,10 +583,10 @@ const renameFiles = async (inpath) => {
   args[0] = scanpath
   if (MANUAL_RUN) {
     args.length = 7
+    // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
+    args[1] = foldername + '.nzb'
     // The name of the job name without path or file extension.
     args[2] = foldername
-    // The name of the NZB file used by SABPostProcess.py to detect a "Manual Run".
-    args[1] = `${ foldername }.nzb`
     // The indexer's report number (not used by SABPostProcess.py).
     args[3] = 0
     // The user-defined category used to signal which manager is notified.
@@ -547,14 +596,12 @@ const renameFiles = async (inpath) => {
     // The status of post processing (0 = OK, 1=failed verification, 2=failed unpack, 3=1+2).
     args[6] = 0
   }
-  const date = new Date
+  const date = new Date()
   await move(inpath, scanpath)
 
   const vidpaths = await glob([GLOB_MP4], { 'cwd': scanpath })
   const subs = await getSrts(scanpath)
-
   await removeSrts(scanpath)
-  await refreshConfig()
 
   // Since `[SABNZBD]` is configured with `convert = False`
   // invoking SABPostProcess.py will simply start a renamer scan.
@@ -562,21 +609,23 @@ const renameFiles = async (inpath) => {
     const spawned = execa(SAB_SCRIPT_PATH, args)
     spawned.stdout.pipe(process.stdout)
     await spawned
-  } catch (e) {}
+  } catch {}
 
   let renamed
-  await poll(async () => {
+  await poll(async (done) => {
     renamed = await findVideos(libroot, date)
-    return renamed.length
+    if (renamed.length !== 0) {
+      done()
+    }
   }, { 'frequency': 5000, 'limit': 1000 * 60 * 2.5 })
 
-  if (await exists(scanpath)) {
+  if (fs.existsSync(scanpath)) {
     const ignored = await glob([GLOB_IGNORE], { 'cwd': scanpath })
-    await Promise.all(ignored.map((ignore) => remove(ignore)))
+    await Promise.all(ignored.map((ignore) => fs.remove(ignore)))
     await restoreSrts(vidpaths, subs)
     return 0
   }
-  if (renamed.length) {
+  if (renamed.length !== 0) {
     await restoreSrts(renamed, subs)
     await cleanupFolder(renamed[0])
   }
@@ -588,10 +637,12 @@ const findVideos = async (inpath, date=new Date(NaN)) => {
   const filepaths = await glob([GLOB_MP4], { cwd })
   const result = []
   await Promise.all(filepaths.map(async (filepath) => {
-    const { mtime } = await stat(filepath)
-    if (!moment(mtime).isBefore(date)) {
-      result.push(filepath)
-    }
+    try {
+      const { mtime } = await fs.stat(filepath)
+      if (!moment(mtime).isBefore(date)) {
+        result.push(filepath)
+      }
+    } catch {}
   }))
   return result
 }
@@ -601,7 +652,7 @@ const restoreSrts = async (vidpaths, subs) => {
     .map((vidpath) => path.resolve(vidpath))
     .sort(naturalCompare)
 
-  const subgroups = {}
+  const subgroups = { __proto__: null }
   for (const sub of subs) {
     const key = path.basename(sub.filepath).replace(reSrtEnLang, '')
     if (subgroups[key]) {
@@ -623,21 +674,21 @@ const restoreSrts = async (vidpaths, subs) => {
     await Promise.all(subgroup.map(async ({ filepath, captions }) => {
       let { 0:ext } = reSrtEnLang.exec(filepath) || ['.srt']
       ext = ext.replace('.eng.', '.en.')
-      await write(path.join(dirname, basename + ext), captions.stringify())
+      await fs.outputFile(path.join(dirname, basename + ext), captions.stringify())
     }))
   }
 }
 
 const cleanupFolder = async (inpath) => {
   const cwd = await isFile(inpath) ? path.dirname(inpath) : inpath
-  const filepaths = await glob([GLOB_ALL, `!${ GLOB_SRT }`, `!${ GLOB_VIDEO }`], { cwd })
+  const filepaths = await glob([GLOB_ALL, '!' + GLOB_SRT, '!' + GLOB_VIDEO], { cwd })
   await Promise.all(filepaths.map(async (filepath) => {
     const basename = path.basename(filepath)
     try {
-      console.log(`Trashing ${ basename }.`)
+      console.log('Trashing ' + basename + '.')
       await trash([filepath])
-    } catch (e) {
-      console.log(`Failed to trash ${ basename }.`)
+    } catch {
+      console.log('Failed to trash ' + basename + '.')
     }
   }))
 }
@@ -646,9 +697,8 @@ const cleanupFolder = async (inpath) => {
 
 (async () => {
   const inpath = path.resolve(argv._[0] || process.cwd())
-
   const basename = path.basename(inpath)
-  console.log(`Processing ${ basename }.`)
+  console.log('Processing ' + basename + '.')
 
   let { force=[], imdbid, tmdbid, tvdbid } = argv
   force = new Set(force.map((value) => value.toLowerCase()))

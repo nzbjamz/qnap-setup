@@ -27,25 +27,24 @@
 ### Global filters
 
   * Ignored:<br>
-    `china, danish, dksubs, dubbed, dutch, french, german, h.265, h265, HC,
-     HDChina, italian, korean, korsub, spanish, swedish, swesub, truefrench, vain`
+    `china, danish, dksubs, dubbed, dutch, french, german, HC, HDChina, hebsub, italian, korean, korsub, spanish, swedish, swesub, truefrench, vain, h.265, h265, x265`
 
 ## Qualities
 
 ### Profile Defaults
 
   * Uncheck the following:
-    * Prefer 3D HD
-    * 3D HD
-    * UHD 4K
-    * 2160p
+    * ✗ Prefer 3D HD
+    * ✗ 3D HD
+    * ✗ UHD 4K
+    * ✗ 2160p
 
 ## Downloaders
 
   * ✗ Black hole
   * Add your download client
     * Host: `localhost:<DOWNLOADER_PORT>`
-    * ✓ Ssl
+    * ✗ Ssl
     * Api Key: `<DOWNLOADER_API_KEY>`
     * Category: `movies`
     * ✗ Delete Failed
@@ -54,14 +53,14 @@
 
 ### Rename downloaded movies
 
-  * ✓ Cleanup
+  * From: `/share/CACHEDEV1_DATA/Download/complete/movies/`
   * To: `/share/CACHEDEV1_DATA/Multimedia/Movies/`
   * Folder naming: `<namethe> (<year>)`
   * File naming: `<thename> (<year>) <cd>.<ext>`
   * ✓ Use TAB 3D
   * ✓ Clean Name
-  * From: `/share/CACHEDEV1_DATA/Download/complete/movies/`
-  * ✓ Remove lower/equal quality copies of a release after downloading.
+  * ✓ Cleanup
+  * ✓ Delete Others
   * Run Every: `0`
   * Force Every: `0`
   * ✓ Next On_failed
@@ -71,7 +70,9 @@
 ## Notifications
 
   * Add your Plex Media Server
-    * Host: `localhost:<PLEX_PORT>`
+    * Media Server: `localhost`
+    * Port: `32400`
+    * Use HTTPS: ✓
     * Auth Token: `<PLEX_TOKEN>`
 
 ## Manage

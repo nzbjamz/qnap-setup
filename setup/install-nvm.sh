@@ -23,7 +23,7 @@ EOF
 export NVM_DIR=/share/CACHEDEV1_DATA/.nvm
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-# Install Node 7.
-nvm install 7
-nvm alias default 7
+# Install Node 14.
+nvm install 14
+nvm alias default 14
 node -v

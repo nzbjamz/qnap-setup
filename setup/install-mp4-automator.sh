@@ -4,27 +4,17 @@ basedir=$(dirname "$0")
 
 echo 'Installing mp4_automator.'
 
-# Install sickbeard_mp4_automator prerequesites.
-# opkg remove python-light --force-remove --force-removal-of-dependent-packages
-# opkg remove python-base --force-remove --force-removal-of-dependent-packages
-# opkg install python-dev python-pip
-opkg install gcc python-cffi
-pip install requests
-pip install 'requests[security]'
-pip install requests-cache
-pip install babelfish
-pip install 'subliminal<2'
-/usr/bin/yes | pip uninstall stevedore
-pip install --trusted-host pypi.python.org stevedore==1.19.1
-pip install qtfaststart
-
 cd /share/CACHEDEV1_DATA/
 git clone --quiet --depth=1 --branch=master git://github.com/mdhiggins/sickbeard_mp4_automator scripts > /dev/null 2>&1
 chmod +x ./scripts/manual.py
+cd /share/CACHEDEV1_DATA/scripts/
+find / -name '*.pyc' -delete
+/opt/QSabNZBd3/bin/pip install -r setup/requirements.txt
 
 echo 'Installing custom scripts.'
 
 cd "$basedir"/../scripts/
-cp * /share/CACHEDEV1_DATA/scripts/
+cp *{.js,.json} /share/CACHEDEV1_DATA/scripts/
+cp ./config/autoProcess.ini /share/CACHEDEV1_DATA/scripts/config/
 cd /share/CACHEDEV1_DATA/scripts/
 npm i > /dev/null 2>&1

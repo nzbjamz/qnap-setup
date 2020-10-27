@@ -3,7 +3,7 @@
 echo 'Finishing setup.'
 
 cat << EOF >> /opt/etc/profile
-/share/CACHEDEV1_DATA/.qpkg/QSabNZBdPlus/QSabNZBdPlus.sh restart
+/share/CACHEDEV1_DATA/.qpkg/QSabNZBd3/QSabNZBd3.sh restart
 /share/CACHEDEV1_DATA/.qpkg/QCouchPotato/QCouchPotato.sh restart
 /share/CACHEDEV1_DATA/.qpkg/QSonarr/QSonarr.sh restart
 
