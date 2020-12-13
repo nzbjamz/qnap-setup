@@ -11,7 +11,7 @@
     "fs-extra": "^9.0.1",
     "globby": "^11.0.1",
     "imdb-search": "^0.1.5",
-    "ini": "^1.3.5",
+    "ini": "^1.3.6",
     "lodash": "^4.17.20",
     "moment": "^2.29.1",
     "path-is-inside": "^1.0.2",
